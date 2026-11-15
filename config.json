@@ -1,0 +1,9 @@
+{
+  "cities": ["Apeldoorn"],
+  "max_price": 800,
+  "min_size_m2": 0,
+  "max_rooms": 2,
+  "types": ["apartment", "studio"],
+  "needed_by": "2027-01-11",
+  "skip_under_option": true
+}
