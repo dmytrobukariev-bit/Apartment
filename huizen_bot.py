@@ -759,6 +759,37 @@ def description_block(url: str) -> str:
             f"<blockquote expandable>{esc(original)}</blockquote>")
 
 
+# ---------------------------------------------------------------- даты по-русски
+RU_MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа",
+             "сентября", "октября", "ноября", "декабря"]
+
+
+def ru_date(d: date) -> str:
+    s = f"{d.day} {RU_MONTHS[d.month - 1]}"
+    return s if d.year == date.today().year else f"{s} {d.year}"
+
+
+def nice_dates(text: str) -> str:
+    """«свободно с 2026-12-01» → «свободно с 1 декабря (через 16 дней) ✅ успеваешь до 11 января»."""
+    needed = date.fromisoformat(CONFIG["needed_by"])
+
+    def available(m: re.Match) -> str:
+        d = date.fromisoformat(m.group(1))
+        days = (d - date.today()).days
+        if days <= 0:
+            return "📅 свободно сейчас ✅"
+        mark = (f"✅ успеваешь до {ru_date(needed)}" if d <= needed
+                else f"⚠️ позже твоего выселения ({ru_date(needed)})")
+        return f"📅 свободно с {ru_date(d)} (через {days} дн.) {mark}"
+
+    text = re.sub(r"📅 свободно с (\d{4}-\d{2}-\d{2})", available, text)
+    text = text.replace("📅 свободно сейчас\n", "📅 свободно сейчас ✅\n")
+    # заезд позже нужной даты уже отмечен выше, отдельное предупреждение лишнее
+    text = re.sub(r"\n⚠️ заезд только с [^\n]*", "", text)
+    return re.sub(r"\b(\d{4})-(\d{2})-(\d{2})\b",
+                  lambda m: ru_date(date(int(m.group(1)), int(m.group(2)), int(m.group(3)))), text)
+
+
 # ---------------------------------------------------------------- queue
 def show_next(st: dict) -> None:
     """Показывает следующее объявление из очереди, если сейчас ничего не показано."""
@@ -773,7 +804,7 @@ def show_next(st: dict) -> None:
     st.setdefault("shown_fps", []).append(fingerprint(item))
     st["shown_fps"] = st["shown_fps"][-1000:]
     left = len(st["queue"])
-    full = item["text"] + description_block(item["url"])
+    full = nice_dates(item["text"]) + description_block(item["url"])
     text = full + (f"\n\n📬 В очереди ещё: {left}" if left else "\n\n📬 Это последнее в очереди")
     mid = send(text, LIKE_BUTTONS)
     st["current"] = {"message_id": mid, "key": item["key"], "text": full,
