@@ -1067,13 +1067,22 @@ def commit_state() -> None:
     print("Не получилось сохранить состояние в репозиторий", file=sys.stderr)
 
 
+CODE_FILES = ("huizen_bot.py", "config.json", "requirements.txt", ".github")
+# Версия, с которой бот реально запущен. Сравнивать с HEAD нельзя: при сохранении
+# состояния бот делает git pull, HEAD уезжает на новый код, а в памяти остаётся старый.
+STARTED_AT_SHA = ""
+
+
 def code_changed() -> bool:
     """Появилась ли на GitHub новая версия бота (тогда перезапускаемся)."""
+    global STARTED_AT_SHA
     if not os.environ.get("GITHUB_ACTIONS"):
         return False
+    if not STARTED_AT_SHA:
+        STARTED_AT_SHA = os.environ.get("GITHUB_SHA") or git("rev-parse", "HEAD").stdout.strip()
     git("fetch", "-q", "origin", "main")
-    return git("diff", "--quiet", "HEAD", "origin/main", "--",
-               "huizen_bot.py", "config.json", "requirements.txt", ".github").returncode != 0
+    return git("diff", "--quiet", STARTED_AT_SHA, "origin/main", "--",
+               *CODE_FILES).returncode != 0
 
 
 def restart_workflow() -> None:
