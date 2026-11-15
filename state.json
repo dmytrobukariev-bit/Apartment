@@ -1,23 +1,16 @@
 {
  "_started": null,
  "current": {
-  "key": "Nederwoon:38855",
-  "message_id": 64,
-  "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Студия: Hoofdstraat, Apeldoorn</b>\n💶 €774/мес · 📐 29 м² · 🚪 комнат: 1\n📅 свободно с 2026-12-01\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.nederwoon.nl/huurwoning/apeldoorn/38855/studio-hoofdstraat\">Nederwoon</a>",
-  "title": "Hoofdstraat, Apeldoorn",
-  "url": "https://www.nederwoon.nl/huurwoning/apeldoorn/38855/studio-hoofdstraat"
+  "key": "Nederwoon:38921",
+  "message_id": 65,
+  "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Студия: Wilhelmina Druckerstraat, Apeldoorn</b>\n💶 €589/мес · 📐 27 м² · 🚪 комнат: 1\n📅 свободно с 2026-12-01\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.nederwoon.nl/huurwoning/apeldoorn/38921/studio-wilhelmina-druckerstraat\">Nederwoon</a>",
+  "title": "Wilhelmina Druckerstraat, Apeldoorn",
+  "url": "https://www.nederwoon.nl/huurwoning/apeldoorn/38921/studio-wilhelmina-druckerstraat"
  },
  "help_sent": true,
  "notice_id": null,
- "offset": 899399703,
+ "offset": 899399704,
  "queue": [
-  {
-   "key": "Nederwoon:38921",
-   "star": true,
-   "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Студия: Wilhelmina Druckerstraat, Apeldoorn</b>\n💶 €589/мес · 📐 27 м² · 🚪 комнат: 1\n📅 свободно с 2026-12-01\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.nederwoon.nl/huurwoning/apeldoorn/38921/studio-wilhelmina-druckerstraat\">Nederwoon</a>",
-   "title": "Wilhelmina Druckerstraat, Apeldoorn",
-   "url": "https://www.nederwoon.nl/huurwoning/apeldoorn/38921/studio-wilhelmina-druckerstraat"
-  },
   {
    "key": "Nederwoon:38931",
    "star": true,
@@ -158,6 +151,11 @@
    "key": "Marktplaats:a1533883718",
    "title": "Appartement te huur in Apeldoorn - 20 m² - 1 kamer",
    "url": "https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533883718-appartement-te-huur-in-apeldoorn-20-m2-1-kamer"
+  },
+  "64": {
+   "key": "Nederwoon:38855",
+   "title": "Hoofdstraat, Apeldoorn",
+   "url": "https://www.nederwoon.nl/huurwoning/apeldoorn/38855/studio-hoofdstraat"
   }
  },
  "seen": {
@@ -216,6 +214,12 @@
    "price": 774,
    "size": 29,
    "street": "hoofdstraat"
+  },
+  {
+   "kind": "Студия",
+   "price": 589,
+   "size": 27,
+   "street": "druckerstraat"
   }
  ]
 }
