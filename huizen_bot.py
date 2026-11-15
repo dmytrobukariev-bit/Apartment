@@ -943,7 +943,51 @@ def handle_updates(st: dict, wait: int) -> bool:
     return changed
 
 
+def needs_confirm(action: str) -> bool:
+    return action in ("no", "unlike") or action.startswith("unsave:")
+
+
+def original_buttons(action: str) -> list:
+    """Какие кнопки вернуть, если удаление отменили."""
+    if action == "no":
+        return LIKE_BUTTONS
+    if action == "unlike":
+        return SAVED_BUTTONS
+    sid = action.split(":", 1)[1]
+    return [[{"text": "✖ Закрыть", "callback_data": "close"}],
+            [{"text": "🗑 Убрать из сохранённых", "callback_data": f"unsave:{sid}"}]]
+
+
 def on_button(st: dict, action: str, mid: int, cq_id: str) -> None:
+    chat = os.environ["TELEGRAM_CHAT_ID"]
+
+    def answer_cq(text: str) -> None:
+        try:
+            tg("answerCallbackQuery", callback_query_id=cq_id, text=text)
+        except TelegramError:
+            pass
+
+    # Удаление: сначала спрашиваем подтверждение
+    if needs_confirm(action):
+        try:
+            tg("editMessageReplyMarkup", chat_id=chat, message_id=mid, reply_markup={
+                "inline_keyboard": [[{"text": "✅ Да, удалить", "callback_data": f"y:{action}"},
+                                     {"text": "↩️ Отмена", "callback_data": f"back:{action}"}]]})
+        except TelegramError:
+            pass
+        answer_cq("Точно удалить?")
+        return
+    if action.startswith("back:"):
+        try:
+            tg("editMessageReplyMarkup", chat_id=chat, message_id=mid,
+               reply_markup={"inline_keyboard": original_buttons(action[5:])})
+        except TelegramError:
+            pass
+        answer_cq("Отменено")
+        return
+    if action.startswith("y:"):
+        action = action[2:]
+
     cur = st["current"]
     is_current = cur and cur["message_id"] == mid
     answer = ""
