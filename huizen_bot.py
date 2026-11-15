@@ -944,7 +944,8 @@ def handle_updates(st: dict, wait: int) -> bool:
 
 
 def needs_confirm(action: str) -> bool:
-    return action in ("no", "unlike") or action.startswith("unsave:")
+    # 👎 «Не то» удаляет сразу; подтверждение только для сохранённых
+    return action == "unlike" or action.startswith("unsave:")
 
 
 def original_buttons(action: str) -> list:
