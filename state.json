@@ -1,45 +1,10 @@
 {
  "_started": null,
- "current": {
-  "key": "Marktplaats:a1533955290",
-  "message_id": 82,
-  "text": "ℹ️ <i>Дополнительный вариант (вне основных критериев)</i>\n🏠 <b>Квартира: Appartement te huur in Apeldoorn - 40 m² - 2 kamers</b>\n💶 €926/мес · 📐 40 м² · 🚪 комнат: 2\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533955290-appartement-te-huur-in-apeldoorn-40-m2-2-kamers\">Marktplaats</a>\n\n📝 <b>Описание</b> (перевод):\n<blockquote expandable>Хотите просмотреть больше фотографий или получить дополнительную информацию об этом объекте недвижимости?\nНа нашем сайте вы найдете обширную информацию о недвижимости, все доступные фотографии, стоимость аренды, условия аренды, наличие и прямой контакт с владельцем.\nПолную презентацию объекта недвижимости можно посмотреть на сайте: https://huurhuisvinder.nl.\nВам интересно?\nПосетите наш сайт и свяжитесь с владельцем напрямую!</blockquote>",
-  "title": "Appartement te huur in Apeldoorn - 40 m² - 2 kamers",
-  "url": "https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533955290-appartement-te-huur-in-apeldoorn-40-m2-2-kamers"
- },
+ "current": null,
  "help_sent": true,
- "notice_id": null,
- "offset": 899399719,
- "queue": [
-  {
-   "key": "Marktplaats:a1534035208",
-   "star": false,
-   "text": "ℹ️ <i>Дополнительный вариант (вне основных критериев)</i>\n🏠 <b>Квартира: Te huur: Appartement Hoofdstraat in Apeldoorn</b>\n💶 €824/мес · 🚪 комнат: 2\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1534035208-te-huur-appartement-hoofdstraat-in-apeldoorn\">Marktplaats</a>",
-   "title": "Te huur: Appartement Hoofdstraat in Apeldoorn",
-   "url": "https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1534035208-te-huur-appartement-hoofdstraat-in-apeldoorn"
-  },
-  {
-   "key": "Nederwoon:38932",
-   "star": false,
-   "text": "ℹ️ <i>Дополнительный вариант (вне основных критериев)</i>\n🏠 <b>Комната: Beurtvaartstraat, Apeldoorn</b>\n💶 €554/мес · 📐 22 м² · 🚪 комнат: 1\n📅 свободно с 2026-12-01\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.nederwoon.nl/huurwoning/apeldoorn/38932/kamer-beurtvaartstraat\">Nederwoon</a>",
-   "title": "Beurtvaartstraat, Apeldoorn",
-   "url": "https://www.nederwoon.nl/huurwoning/apeldoorn/38932/kamer-beurtvaartstraat"
-  },
-  {
-   "key": "Kamer.nl:516628",
-   "star": false,
-   "text": "ℹ️ <i>Дополнительный вариант (вне основных критериев)</i>\n🏠 <b>Комната: Kamer Soerenseweg, Apeldoorn</b>\n💶 €550/мес\n📅 свободно сейчас\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.kamer.nl/huren/kamer-apeldoorn/soerenseweg/516628/\">Kamer.nl</a>",
-   "title": "Kamer Soerenseweg, Apeldoorn",
-   "url": "https://www.kamer.nl/huren/kamer-apeldoorn/soerenseweg/516628/"
-  },
-  {
-   "key": "Kamer.nl:606743",
-   "star": false,
-   "text": "ℹ️ <i>Дополнительный вариант (вне основных критериев)</i>\n🏠 <b>Квартира: Appartement Asselsestraat, Apeldoorn</b>\n💶 €950/мес\n📅 свободно с 2026-12-01\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.kamer.nl/huren/appartement-apeldoorn/asselsestraat/606743/\">Kamer.nl</a>",
-   "title": "Appartement Asselsestraat, Apeldoorn",
-   "url": "https://www.kamer.nl/huren/appartement-apeldoorn/asselsestraat/606743/"
-  }
- ],
+ "notice_id": 87,
+ "offset": 899399726,
+ "queue": [],
  "saved": {
   "55": {
    "key": "Marktplaats:a1533910463",
@@ -219,6 +184,30 @@
    "price": 926,
    "size": 40,
    "street": ""
+  },
+  {
+   "kind": "Квартира",
+   "price": 824,
+   "size": 0,
+   "street": "hoofdstraat"
+  },
+  {
+   "kind": "Комната",
+   "price": 554,
+   "size": 22,
+   "street": "beurtvaartstraat"
+  },
+  {
+   "kind": "Комната",
+   "price": 550,
+   "size": 0,
+   "street": "soerenseweg"
+  },
+  {
+   "kind": "Квартира",
+   "price": 950,
+   "size": 0,
+   "street": "asselsestraat"
   }
  ]
 }
