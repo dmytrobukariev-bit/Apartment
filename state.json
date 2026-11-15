@@ -1,23 +1,16 @@
 {
  "_started": null,
  "current": {
-  "key": "Nederwoon:38921",
-  "message_id": 65,
-  "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Студия: Wilhelmina Druckerstraat, Apeldoorn</b>\n💶 €589/мес · 📐 27 м² · 🚪 комнат: 1\n📅 свободно с 2026-12-01\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.nederwoon.nl/huurwoning/apeldoorn/38921/studio-wilhelmina-druckerstraat\">Nederwoon</a>",
+  "key": "Nederwoon:38931",
+  "message_id": 67,
+  "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Студия: Wilhelmina Druckerstraat, Apeldoorn</b>\n💶 €610/мес · 📐 30 м² · 🚪 комнат: 1\n📅 свободно с 1 декабря (через 16 дн.) ✅ успеваешь до 11 января 2027\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.nederwoon.nl/huurwoning/apeldoorn/38931/studio-wilhelmina-druckerstraat\">Nederwoon</a>\n\n📝 <b>Описание</b> (перевод):\n<blockquote expandable>Описание\nСтуденческое общежитие | Доступно с 1 декабря 2026 г. | Студия на улице Вильгельмина Друкерстраат в Апелдорне!\nЭта современная студия идеально подходит для тех, кто любит комфорт, спокойствие и центральное расположение.\nСтудия площадью 30 м² расположена на первом этаже, имеет простую планировку и имеет открытую кухню с вытяжкой, керамической плитой и комбинацией холодильника с морозильной камерой. В гостиной/спальне есть раковина, а оттуда можно попасть в душ. Есть отдельный плавучий туалет.\nОбщий тренажерный зал, помещение для хранения велосипедов и солнечная терраса на крыше делают эту студию идеальным местом для жизни!\nПоблизости вы найдете супермаркеты, рестораны и остановки общественного транспорта, что делает это место особенно привлекательным. Хотите ли вы насладиться городом или ищете тишины и покоя, эта студия станет для вас идеальным местом.\nВнимание! В данной студии действуют строгие условия аренды: арендатор должен учиться на очном отделении и быть не старше 28 лет. Мы не можем делать из этого никаких исключений. Если вы не выполните это условие, вы не сможете попасть в студию.\nЗаинтересованы? Запросите просмотр через www.nederwoon.nl.\nВ NederWoon Verhuurmakelaars мы стремимся предоставлять надежную, актуальную и полную информацию. Несмотря на нашу заботу, может случиться так, что данные на нашем сайте содержат неточности или упущения. Таким образом, никакие права не могут быть получены из содержания этого веб-сайта.\nДля получения самой актуальной информации или если у вас есть какие-либо вопросы, пожалуйста…</blockquote>",
   "title": "Wilhelmina Druckerstraat, Apeldoorn",
-  "url": "https://www.nederwoon.nl/huurwoning/apeldoorn/38921/studio-wilhelmina-druckerstraat"
+  "url": "https://www.nederwoon.nl/huurwoning/apeldoorn/38931/studio-wilhelmina-druckerstraat"
  },
  "help_sent": true,
  "notice_id": null,
- "offset": 899399704,
+ "offset": 899399705,
  "queue": [
-  {
-   "key": "Nederwoon:38931",
-   "star": true,
-   "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Студия: Wilhelmina Druckerstraat, Apeldoorn</b>\n💶 €610/мес · 📐 30 м² · 🚪 комнат: 1\n📅 свободно с 2026-12-01\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.nederwoon.nl/huurwoning/apeldoorn/38931/studio-wilhelmina-druckerstraat\">Nederwoon</a>",
-   "title": "Wilhelmina Druckerstraat, Apeldoorn",
-   "url": "https://www.nederwoon.nl/huurwoning/apeldoorn/38931/studio-wilhelmina-druckerstraat"
-  },
   {
    "key": "Kamernet:2417390",
    "star": false,
@@ -156,6 +149,12 @@
    "key": "Nederwoon:38855",
    "title": "Hoofdstraat, Apeldoorn",
    "url": "https://www.nederwoon.nl/huurwoning/apeldoorn/38855/studio-hoofdstraat"
+  },
+  "65": {
+   "key": "Nederwoon:38921",
+   "summary": "Студия · €589/мес · 27 м² · свободно с 2026-12-01",
+   "title": "Wilhelmina Druckerstraat, Apeldoorn",
+   "url": "https://www.nederwoon.nl/huurwoning/apeldoorn/38921/studio-wilhelmina-druckerstraat"
   }
  },
  "seen": {
@@ -219,6 +218,12 @@
    "kind": "Студия",
    "price": 589,
    "size": 27,
+   "street": "druckerstraat"
+  },
+  {
+   "kind": "Студия",
+   "price": 610,
+   "size": 30,
    "street": "druckerstraat"
   }
  ]
