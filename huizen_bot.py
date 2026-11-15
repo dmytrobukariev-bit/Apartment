@@ -817,10 +817,76 @@ def queue_empty_notice(st: dict) -> None:
 
 
 HELP = ("🤖 Я ищу жильё в Апельдорне и присылаю объявления по одному.\n\n"
-        "👍 Оставить: объявление останется в чате\n"
+        "👍 Оставить: сохраню (сообщение само исчезнет через минуту, чтобы не засорять чат)\n"
         "👎 Не то: удалю его и покажу следующее\n\n"
-        "Команды:\n/saved: список сохранённых\n/queue: сколько осталось в очереди\n"
+        "Команды:\n/saved: сохранённые (нажми на вариант, чтобы открыть подробно)\n"
+        "/queue: сколько осталось в очереди\n"
         "/next: показать следующее, если застряло")
+SAVED_DELETE_AFTER = 60       # «💚 Сохранено» исчезает через минуту
+DETAILS_DELETE_AFTER = 10 * 60  # открытые из /saved подробности и сам список: через 10 минут
+
+
+def schedule_delete(st: dict, mid: int, after: int) -> None:
+    st.setdefault("auto_delete", []).append([mid, time.time() + after])
+
+
+def cancel_delete(st: dict, mid: int) -> None:
+    st["auto_delete"] = [x for x in st.get("auto_delete", []) if x[0] != mid]
+
+
+def run_auto_delete(st: dict) -> bool:
+    due = [x for x in st.get("auto_delete", []) if x[1] <= time.time()]
+    for mid, _ in due:
+        if mid == st.get("saved_list_id"):
+            st["saved_list_id"] = None
+        try:
+            tg("deleteMessage", chat_id=os.environ["TELEGRAM_CHAT_ID"], message_id=mid)
+        except TelegramError:
+            pass
+    st["auto_delete"] = [x for x in st.get("auto_delete", []) if x[1] > time.time()]
+    return bool(due)
+
+
+def poll_wait(st: dict) -> int:
+    """Сколько ждать нажатий: до ближайшего автоудаления, но не больше 50 секунд."""
+    soonest = min((x[1] for x in st.get("auto_delete", [])), default=time.time() + 50)
+    return int(max(1, min(50, soonest - time.time() + 1)))
+
+
+def saved_list_markup(st: dict) -> dict:
+    rows = []
+    for i, (sid, v) in enumerate(st["saved"].items(), 1):
+        label = f"{i}. {v.get('summary') or v['title']}"
+        rows.append([{"text": label[:60], "callback_data": f"show:{sid}"}])
+    return {"inline_keyboard": rows}
+
+
+def refresh_saved_list(st: dict) -> None:
+    lid = st.get("saved_list_id")
+    if not lid:
+        return
+    try:
+        if st["saved"]:
+            tg("editMessageReplyMarkup", chat_id=os.environ["TELEGRAM_CHAT_ID"],
+               message_id=lid, reply_markup=saved_list_markup(st))
+        else:
+            delete(lid)
+            st["saved_list_id"] = None
+    except TelegramError:
+        pass
+
+
+def saved_details(v: dict) -> str:
+    if v.get("text"):
+        return "💚 <b>СОХРАНЁННОЕ</b>\n" + v["text"]
+    lines = ["💚 <b>СОХРАНЁННОЕ</b>"]
+    if v.get("summary"):
+        lines.append(f"<b>{esc(v['summary'])}</b>")
+    lines.append(esc(v["title"]))
+    if v.get("url"):
+        source = v["key"].split(":")[0] if v.get("key") else "ссылка"
+        lines.append(f'🔗 <a href="{v["url"]}">{esc(source)}</a>')
+    return "\n".join(lines)
 
 
 def handle_updates(st: dict, wait: int) -> bool:
@@ -857,33 +923,58 @@ def on_button(st: dict, action: str, mid: int, cq_id: str) -> None:
     answer = ""
     if action == "like":
         info = ({"key": cur["key"], "title": cur["title"], "url": cur["url"],
-                 "summary": short_summary(cur["text"])} if is_current
+                 "summary": short_summary(cur["text"]), "text": cur["text"]} if is_current
                 else {"key": "", "title": "объявление", "url": ""})
         st["saved"][str(mid)] = info
         try:
             if is_current:
                 tg("editMessageText", chat_id=os.environ["TELEGRAM_CHAT_ID"], message_id=mid,
-                   text="💚 <b>СОХРАНЕНО</b>\n" + cur["text"], parse_mode="HTML",
-                   disable_web_page_preview=True,
+                   text=f"💚 <b>Сохранено:</b> {esc(info['summary'] or info['title'])}\n"
+                        f"<i>Это сообщение исчезнет через минуту. Открыть снова: /saved</i>",
+                   parse_mode="HTML", disable_web_page_preview=True,
                    reply_markup={"inline_keyboard": SAVED_BUTTONS})
             else:
                 tg("editMessageReplyMarkup", chat_id=os.environ["TELEGRAM_CHAT_ID"],
                    message_id=mid, reply_markup={"inline_keyboard": SAVED_BUTTONS})
         except TelegramError:
             pass
+        schedule_delete(st, mid, SAVED_DELETE_AFTER)
+        refresh_saved_list(st)
         answer = "Сохранено 💚"
     elif action in ("no", "unlike"):
-        st["saved"].pop(str(mid), None)
+        if st["saved"].pop(str(mid), None) is not None:
+            refresh_saved_list(st)
+        cancel_delete(st, mid)
         delete(mid)
         answer = "Убрано"
+    elif action.startswith("show:"):
+        v = st["saved"].get(action[5:])
+        if v:
+            sid = action[5:]
+            new_mid = send(saved_details(v), [
+                [{"text": "✖ Закрыть", "callback_data": "close"}],
+                [{"text": "🗑 Убрать из сохранённых", "callback_data": f"unsave:{sid}"}]])
+            schedule_delete(st, new_mid, DETAILS_DELETE_AFTER)
+        else:
+            answer = "Уже удалено"
+    elif action.startswith("unsave:"):
+        st["saved"].pop(action[7:], None)
+        cancel_delete(st, mid)
+        delete(mid)
+        refresh_saved_list(st)
+        answer = "Убрано из сохранённых"
+    elif action == "close":
+        cancel_delete(st, mid)
+        delete(mid)
     if is_current and action in ("like", "no"):
         st["current"] = None
     try:
         tg("answerCallbackQuery", callback_query_id=cq_id, text=answer)
     except TelegramError:
         pass
-    show_next(st)
-    queue_empty_notice(st)
+    if action in ("like", "no"):
+        show_next(st)
+        queue_empty_notice(st)
 
 
 def short_summary(text: str) -> str:
@@ -911,15 +1002,15 @@ def on_command(st: dict, cmd: str) -> None:
         if not st["saved"]:
             send("Сохранённых пока нет.")
         else:
-            lines = []
-            for i, v in enumerate(st["saved"].values(), 1):
-                head = esc(v.get("summary") or v["title"])
-                source = v["key"].split(":")[0] if v.get("key") else "ссылка"
-                link = f' → <a href="{v["url"]}">{esc(source)}</a>' if v["url"] else ""
-                sub = f"\n    {esc(v['title'])}{link}" if v.get("summary") else link
-                lines.append(f"<b>{i}. {head}</b>{sub}")
-            send("💚 <b>Сохранённые:</b>\n\n" + "\n\n".join(lines),
-                 disable_preview=True)
+            if st.get("saved_list_id"):  # старый список убираем, чтобы не копились
+                cancel_delete(st, st["saved_list_id"])
+                delete(st["saved_list_id"])
+            lid = send(f"💚 <b>Сохранённые ({len(st['saved'])})</b>\n"
+                       "Нажми на вариант, чтобы открыть подробно:")
+            tg("editMessageReplyMarkup", chat_id=os.environ["TELEGRAM_CHAT_ID"],
+               message_id=lid, reply_markup=saved_list_markup(st))
+            st["saved_list_id"] = lid
+            schedule_delete(st, lid, DETAILS_DELETE_AFTER)
     elif cmd == "/queue":
         stars = sum(q["star"] for q in st["queue"])
         send(f"📬 В очереди: {len(st['queue'])} (из них ⭐ {stars})")
@@ -1005,7 +1096,9 @@ def serve() -> int:
                 show_next(st)
             except TelegramError as e:
                 print("Не удалось показать объявление:", e, file=sys.stderr)
-        if handle_updates(st, wait=50):
+        if handle_updates(st, wait=poll_wait(st)):
+            dirty = True
+        if run_auto_delete(st):
             dirty = True
         if dirty:
             save_state(st)
