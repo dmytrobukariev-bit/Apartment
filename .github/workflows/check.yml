@@ -1,21 +1,25 @@
 name: Проверка жилья
 
+# Бот работает непрерывно: один запуск длится ~5 ч 40 мин (лимит GitHub 6 ч),
+# в конце он сам запускает следующий. Расписание раз в час нужно на случай,
+# если цепочка оборвётся.
 on:
   schedule:
-    - cron: "*/10 * * * *"   # каждые 10 минут (GitHub иногда запускает с опозданием)
-  workflow_dispatch:          # кнопка "Run workflow" для ручного запуска
+    - cron: "17 * * * *"
+  workflow_dispatch:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
-  group: huizen-check
+  group: huizen-bot
   cancel-in-progress: false
 
 jobs:
-  check:
+  bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 355
     steps:
       - uses: actions/checkout@v4
 
@@ -26,16 +30,18 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Поиск и отправка в Telegram
+      - name: Бот (поиск + кнопки в Telegram)
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python huizen_bot.py
-
-      - name: Запомнить уже отправленные объявления
-        if: always()
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "huizen-bot"
           git config user.email "huizen-bot@users.noreply.github.com"
-          git add seen.json
-          git diff --cached --quiet || (git commit -m "update seen listings" && git push)
+          python huizen_bot.py
+
+      - name: Сохранить состояние, если бот упал
+        if: failure()
+        run: |
+          git add state.json || true
+          git diff --cached --quiet || (git commit -m "update bot state" && git pull --rebase -X theirs && git push)

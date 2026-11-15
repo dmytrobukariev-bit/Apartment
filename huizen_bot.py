@@ -1,16 +1,21 @@
 """Ищет студии и квартиры в аренду и присылает новые объявления в Telegram.
 
-Источники: Kamernet, 123wonen, Pararius (если он не блокирует запросы). Настройки фильтра лежат в config.json,
-токен бота и chat id берутся из переменных окружения
-TELEGRAM_TOKEN и TELEGRAM_CHAT_ID.
+Источники: Nederwoon, Marktplaats, Kamernet, Kamer.nl, 123wonen, Pararius и
+Huurwoningen (последние два, если не блокируют запросы). Настройки фильтра в
+config.json, токен бота и chat id в переменных окружения TELEGRAM_TOKEN и
+TELEGRAM_CHAT_ID.
 
-Запуск:  python huizen_bot.py            (проверить и отправить новое)
-         python huizen_bot.py --dry-run  (только показать, ничего не слать)
+Объявления показываются по одному с кнопками «👍 Оставить» / «👎 Не то».
+Очередь, сохранённые и уже виденные объявления хранятся в state.json.
+
+Запуск:  python huizen_bot.py            (работать ~5,5 часов: сайты + кнопки)
+         python huizen_bot.py --dry-run  (только показать найденное, ничего не слать)
 """
 
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 from dataclasses import dataclass, field
@@ -476,32 +481,279 @@ def esc(s: str) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def send(text: str, html: bool = True, attempt: int = 0) -> None:
+def html_to_plain(text: str) -> str:
+    plain = re.sub(r'<a href="([^"]+)">[^<]*</a>', r"\1", text)
+    plain = re.sub(r"<[^>]+>", "", plain)
+    return plain.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+
+
+class TelegramError(RuntimeError):
+    def __init__(self, status: int, text: str):
+        super().__init__(f"Telegram {status}: {text[:300]}")
+        self.status = status
+
+
+def tg(method: str, attempt: int = 0, http_timeout: int = 40, **params) -> dict:
+    """Вызов Telegram Bot API с повторами при сбоях и лимитах."""
     token = os.environ["TELEGRAM_TOKEN"]
-    chat = os.environ["TELEGRAM_CHAT_ID"]
-    payload = {"chat_id": chat, "text": text, "disable_web_page_preview": False}
-    if html:
-        payload["parse_mode"] = "HTML"
     try:
-        r = requests.post(f"https://api.telegram.org/bot{token}/sendMessage",
-                          json=payload, timeout=30)
+        r = requests.post(f"https://api.telegram.org/bot{token}/{method}",
+                          json=params, timeout=http_timeout)
     except requests.RequestException:
         if attempt < 3:
             time.sleep(5)
-            return send(text, html, attempt + 1)
+            return tg(method, attempt + 1, http_timeout, **params)
         raise
-    if r.status_code == 429 and attempt < 5:  # Telegram просит подождать
+    if r.status_code == 429 and attempt < 5:
         time.sleep(r.json().get("parameters", {}).get("retry_after", 5) + 1)
-        return send(text, html, attempt + 1)
-    if r.status_code == 400 and html:
-        # Не разобрался HTML: отправляем то же самое простым текстом.
-        print("Telegram 400:", r.text[:300], file=sys.stderr)
-        plain = re.sub(r'<a href="([^"]+)">[^<]*</a>', r"\1", text)
-        plain = re.sub(r"<[^>]+>", "", plain)
-        plain = plain.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
-        return send(plain, html=False, attempt=attempt)
+        return tg(method, attempt + 1, http_timeout, **params)
     if not r.ok:
-        raise RuntimeError(f"Telegram {r.status_code}: {r.text[:300]}")
+        raise TelegramError(r.status_code, r.text)
+    return r.json().get("result")
+
+
+def send(text: str, buttons: list | None = None) -> int:
+    """Отправляет сообщение (HTML, при ошибке разметки простым текстом). Возвращает message_id."""
+    params = {"chat_id": os.environ["TELEGRAM_CHAT_ID"], "text": text,
+              "parse_mode": "HTML", "disable_web_page_preview": False}
+    if buttons:
+        params["reply_markup"] = {"inline_keyboard": buttons}
+    try:
+        return tg("sendMessage", **params)["message_id"]
+    except TelegramError as e:
+        if e.status != 400:
+            raise
+        print("Telegram 400, шлю простым текстом:", e, file=sys.stderr)
+        params.pop("parse_mode")
+        params["text"] = html_to_plain(text)
+        return tg("sendMessage", **params)["message_id"]
+
+
+def delete(message_id: int) -> None:
+    try:
+        tg("deleteMessage", chat_id=os.environ["TELEGRAM_CHAT_ID"], message_id=message_id)
+    except TelegramError:
+        # Сообщения старше 48 часов Telegram удалять не даёт: просто сворачиваем текст.
+        try:
+            tg("editMessageText", chat_id=os.environ["TELEGRAM_CHAT_ID"],
+               message_id=message_id, text="👎 скрыто")
+        except TelegramError:
+            pass
+
+
+# ---------------------------------------------------------------- state
+STATE_FILE = HERE / "state.json"
+LIKE_BUTTONS = [[{"text": "👍 Оставить", "callback_data": "like"},
+                 {"text": "👎 Не то", "callback_data": "no"}]]
+SAVED_BUTTONS = [[{"text": "🗑 Убрать из сохранённых", "callback_data": "unlike"}]]
+
+
+def load_state() -> dict:
+    if STATE_FILE.exists():
+        st = json.loads(STATE_FILE.read_text("utf-8"))
+    else:  # переход со старого формата
+        old = json.loads(SEEN_FILE.read_text("utf-8")) if SEEN_FILE.exists() else {}
+        st = {"_started": old.pop("_started", None), "seen": {}}
+    st.setdefault("seen", {})
+    st.setdefault("queue", [])     # объявления, которые ещё не показаны
+    st.setdefault("current", None)  # {"message_id", "key", "text"} — то, что сейчас на экране
+    st.setdefault("saved", {})      # message_id -> {"key", "title", "url"}
+    st.setdefault("offset", 0)      # для getUpdates
+    st.setdefault("notice_id", None)
+    return st
+
+
+def save_state(st: dict) -> None:
+    STATE_FILE.write_text(json.dumps(st, indent=1, ensure_ascii=False, sort_keys=True), "utf-8")
+
+
+# ---------------------------------------------------------------- scraping
+def scrape(st: dict) -> list[str]:
+    """Проверяет все сайты и кладёт новые подходящие объявления в очередь."""
+    errors, added = [], 0
+    queued = {q["key"] for q in st["queue"]}
+    for name, fetch, details in SOURCES:
+        try:
+            found = fetch()
+        except Exception as e:  # один сломанный сайт не должен ронять остальные
+            errors.append(f"{name}: {e}")
+            continue
+        print(f"{name}: найдено {len(found)}")
+        for l in found:
+            if l.key in st["seen"] or l.key in queued or not passes_basic(l):
+                continue
+            try:
+                details(l)
+                time.sleep(1)
+            except Exception as e:
+                print(f"{name}: детали {l.url} не загрузились: {e}", file=sys.stderr)
+            st["seen"][l.key] = date.today().isoformat()
+            if not passes_details(l):  # прямо написано «без регистрации»
+                continue
+            item = {"key": l.key, "text": format_msg(l), "star": matches(l, CONFIG),
+                    "title": l.title, "url": l.url}
+            # ⭐ встают перед дополнительными вариантами
+            pos = len(st["queue"])
+            if item["star"]:
+                pos = next((i for i, q in enumerate(st["queue"]) if not q["star"]), pos)
+            st["queue"].insert(pos, item)
+            queued.add(l.key)
+            added += 1
+    print(f"Добавлено в очередь: {added}, всего в очереди: {len(st['queue'])}")
+    for e in errors:
+        print("ОШИБКА", e, file=sys.stderr)
+    return errors
+
+
+# ---------------------------------------------------------------- queue
+def show_next(st: dict) -> None:
+    """Показывает следующее объявление из очереди, если сейчас ничего не показано."""
+    if st["current"]:
+        return
+    if not st["queue"]:
+        return
+    if st.get("notice_id"):
+        delete(st["notice_id"])
+        st["notice_id"] = None
+    item = st["queue"].pop(0)
+    left = len(st["queue"])
+    text = item["text"] + (f"\n\n📬 В очереди ещё: {left}" if left else "\n\n📬 Это последнее в очереди")
+    mid = send(text, LIKE_BUTTONS)
+    st["current"] = {"message_id": mid, "key": item["key"], "text": item["text"],
+                     "title": item["title"], "url": item["url"]}
+
+
+def queue_empty_notice(st: dict) -> None:
+    if not st["current"] and not st["queue"] and not st.get("notice_id"):
+        st["notice_id"] = send("✅ Очередь пуста. Пришлю, как только появится что-то новое.")
+
+
+HELP = ("🤖 Я ищу жильё в Апельдорне и присылаю объявления по одному.\n\n"
+        "👍 Оставить: объявление останется в чате\n"
+        "👎 Не то: удалю его и покажу следующее\n\n"
+        "Команды:\n/saved: список сохранённых\n/queue: сколько осталось в очереди\n"
+        "/next: показать следующее, если застряло")
+
+
+def handle_updates(st: dict, wait: int) -> bool:
+    """Обрабатывает нажатия кнопок и команды. Возвращает True, если что-то изменилось."""
+    try:
+        updates = tg("getUpdates", http_timeout=wait + 15, timeout=wait, offset=st["offset"],
+                     allowed_updates=["message", "callback_query"]) or []
+    except TelegramError as e:
+        print("getUpdates:", e, file=sys.stderr)
+        time.sleep(5)
+        return False
+    chat = str(os.environ["TELEGRAM_CHAT_ID"])
+    changed = False
+    for u in updates:
+        st["offset"] = u["update_id"] + 1
+        changed = True
+        if "callback_query" in u:
+            cq = u["callback_query"]
+            msg = cq.get("message") or {}
+            if str(msg.get("chat", {}).get("id")) != chat:
+                continue
+            on_button(st, cq["data"], msg["message_id"], cq["id"])
+        elif "message" in u:
+            m = u["message"]
+            if str(m.get("chat", {}).get("id")) != chat:
+                continue
+            on_command(st, (m.get("text") or "").strip().split("@")[0])
+    return changed
+
+
+def on_button(st: dict, action: str, mid: int, cq_id: str) -> None:
+    cur = st["current"]
+    is_current = cur and cur["message_id"] == mid
+    answer = ""
+    if action == "like":
+        info = ({"key": cur["key"], "title": cur["title"], "url": cur["url"]} if is_current
+                else {"key": "", "title": "объявление", "url": ""})
+        st["saved"][str(mid)] = info
+        try:
+            if is_current:
+                tg("editMessageText", chat_id=os.environ["TELEGRAM_CHAT_ID"], message_id=mid,
+                   text="💚 <b>СОХРАНЕНО</b>\n" + cur["text"], parse_mode="HTML",
+                   disable_web_page_preview=True,
+                   reply_markup={"inline_keyboard": SAVED_BUTTONS})
+            else:
+                tg("editMessageReplyMarkup", chat_id=os.environ["TELEGRAM_CHAT_ID"],
+                   message_id=mid, reply_markup={"inline_keyboard": SAVED_BUTTONS})
+        except TelegramError:
+            pass
+        answer = "Сохранено 💚"
+    elif action in ("no", "unlike"):
+        st["saved"].pop(str(mid), None)
+        delete(mid)
+        answer = "Убрано"
+    if is_current and action in ("like", "no"):
+        st["current"] = None
+    try:
+        tg("answerCallbackQuery", callback_query_id=cq_id, text=answer)
+    except TelegramError:
+        pass
+    show_next(st)
+    queue_empty_notice(st)
+
+
+def on_command(st: dict, cmd: str) -> None:
+    if cmd == "/saved":
+        if not st["saved"]:
+            send("Сохранённых пока нет.")
+        else:
+            lines = [f'{i}. <a href="{v["url"]}">{esc(v["title"])}</a>' if v["url"]
+                     else f"{i}. {esc(v['title'])}"
+                     for i, v in enumerate(st["saved"].values(), 1)]
+            send("💚 <b>Сохранённые:</b>\n" + "\n".join(lines))
+    elif cmd == "/queue":
+        stars = sum(q["star"] for q in st["queue"])
+        send(f"📬 В очереди: {len(st['queue'])} (из них ⭐ {stars})")
+    elif cmd == "/next":
+        st["current"] = None
+        show_next(st)
+        queue_empty_notice(st)
+    else:
+        send(HELP)
+
+
+# ---------------------------------------------------------------- git (состояние в репозитории)
+def git(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", *args], cwd=HERE, capture_output=True, text=True)
+
+
+def commit_state() -> None:
+    if not os.environ.get("GITHUB_ACTIONS"):
+        return
+    git("add", "state.json")
+    if git("diff", "--cached", "--quiet").returncode == 0:
+        return
+    git("commit", "-q", "-m", "update bot state")
+    for _ in range(3):
+        if git("push", "-q").returncode == 0:
+            return
+        git("pull", "-q", "--rebase", "-X", "theirs")
+    print("Не получилось сохранить состояние в репозиторий", file=sys.stderr)
+
+
+def code_changed() -> bool:
+    """Появилась ли на GitHub новая версия бота (тогда перезапускаемся)."""
+    if not os.environ.get("GITHUB_ACTIONS"):
+        return False
+    git("fetch", "-q", "origin", "main")
+    return git("diff", "--quiet", "HEAD", "origin/main", "--",
+               "huizen_bot.py", "config.json", "requirements.txt", ".github").returncode != 0
+
+
+def restart_workflow() -> None:
+    repo, token = os.environ.get("GITHUB_REPOSITORY"), os.environ.get("GITHUB_TOKEN")
+    if not repo or not token:
+        return
+    r = requests.post(
+        f"https://api.github.com/repos/{repo}/actions/workflows/check.yml/dispatches",
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
+        json={"ref": "main"}, timeout=30)
+    print("Перезапуск workflow:", r.status_code, r.text[:200])
 
 
 # ---------------------------------------------------------------- main
@@ -513,71 +765,61 @@ SOURCES = [("Pararius", pararius, pararius_details),
            ("Kamer.nl", kamernl, text_details),
            ("123wonen", wonen123, wonen123_details)]
 
+SCRAPE_EVERY = 10 * 60        # проверять сайты каждые 10 минут
+COMMIT_EVERY = 5 * 60         # сохранять состояние в репозиторий не чаще раза в 5 минут
+RUN_FOR = 5 * 3600 + 40 * 60  # GitHub даёт до 6 часов на запуск, потом перезапуск
+
+
+def serve() -> int:
+    st = load_state()
+    if not st.get("help_sent"):
+        st["help_sent"] = True
+        send(HELP)
+    began = time.time()
+    last_scrape = last_commit = 0.0
+    dirty = True
+    while time.time() - began < RUN_FOR:
+        if time.time() - last_scrape >= SCRAPE_EVERY:
+            if code_changed():
+                print("Есть новая версия бота, перезапускаюсь")
+                break
+            scrape(st)
+            last_scrape = time.time()
+            dirty = True
+            try:
+                show_next(st)
+            except TelegramError as e:
+                print("Не удалось показать объявление:", e, file=sys.stderr)
+        if handle_updates(st, wait=50):
+            dirty = True
+        if dirty:
+            save_state(st)
+            if time.time() - last_commit >= COMMIT_EVERY:
+                commit_state()
+                last_commit = time.time()
+                dirty = False
+    save_state(st)
+    commit_state()
+    restart_workflow()
+    return 0
+
+
+def dry_run() -> int:
+    st = load_state()
+    st["queue"], st["seen"] = [], {}
+    scrape(st)
+    for q in st["queue"]:
+        print("\n" + q["text"])
+    return 0
+
 
 def main() -> int:
-    dry = "--dry-run" in sys.argv
     if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
-    seen: dict = json.loads(SEEN_FILE.read_text("utf-8")) if SEEN_FILE.exists() else {}
-    first_run = "_started" not in seen
-    seen.setdefault("_started", date.today().isoformat())
-    errors, new = [], []
-
-    for name, fetch, details in SOURCES:
-        try:
-            found = fetch()
-        except Exception as e:  # один сломанный сайт не должен ронять остальные
-            errors.append(f"{name}: {e}")
-            continue
-        print(f"{name}: найдено {len(found)}")
-        for l in found:
-            if l.key in seen or not passes_basic(l):
-                continue
-            try:
-                details(l)
-                time.sleep(1)
-            except Exception as e:
-                print(f"{name}: детали {l.url} не загрузились: {e}", file=sys.stderr)
-            if passes_details(l):
-                new.append(l)
-            else:  # «без регистрации»: запоминаем, чтобы не проверять снова
-                seen[l.key] = date.today().isoformat()
-
-    def save() -> None:
-        if not dry:
-            SEEN_FILE.write_text(json.dumps(seen, indent=1, sort_keys=True), "utf-8")
-
-    print(f"Новых подходящих: {len(new)}")
-    sent = 0
-    for l in new:
-        msg = format_msg(l)
-        print("\n" + msg)
-        if dry:
-            continue
-        try:
-            send(msg)
-        except Exception as e:  # не запоминаем: попробуем отправить в следующий раз
-            errors.append(f"отправка {l.url}: {e}")
-            continue
-        seen[l.key] = date.today().isoformat()
-        sent += 1
-        save()  # запоминаем сразу, чтобы при сбое не было повторов
-        time.sleep(1.5)
-
-    if not dry and first_run:
-        try:
-            send(f"🤖 Бот запущен. Слежу за жильём в {', '.join(CONFIG['cities'])} "
-                 f"до €{CONFIG['max_price']}. Выше всё, что подходит прямо сейчас "
-                 f"({sent} шт.), дальше буду присылать только новое.")
-        except Exception as e:
-            errors.append(f"стартовое сообщение: {e}")
-    save()
-    for e in errors:
-        print("ОШИБКА", e, file=sys.stderr)
-    # Падаем, только если не сработал ни один источник: тогда GitHub пришлёт письмо.
-    source_errors = [e for e in errors if e.split(":")[0] in {n for n, _, _ in SOURCES}]
-    return 1 if len(source_errors) == len(SOURCES) else 0
+    if "--dry-run" in sys.argv:
+        return dry_run()
+    return serve()
 
 
 if __name__ == "__main__":
