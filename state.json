@@ -1,23 +1,16 @@
 {
  "_started": null,
  "current": {
-  "key": "Marktplaats:a1533883718",
-  "message_id": 63,
-  "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Квартира: Appartement te huur in Apeldoorn - 20 m² - 1 kamer</b>\n💶 €706/мес · 📐 20 м² · 🚪 комнат: 1\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533883718-appartement-te-huur-in-apeldoorn-20-m2-1-kamer\">Marktplaats</a>",
-  "title": "Appartement te huur in Apeldoorn - 20 m² - 1 kamer",
-  "url": "https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533883718-appartement-te-huur-in-apeldoorn-20-m2-1-kamer"
+  "key": "Nederwoon:38855",
+  "message_id": 64,
+  "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Студия: Hoofdstraat, Apeldoorn</b>\n💶 €774/мес · 📐 29 м² · 🚪 комнат: 1\n📅 свободно с 2026-12-01\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.nederwoon.nl/huurwoning/apeldoorn/38855/studio-hoofdstraat\">Nederwoon</a>",
+  "title": "Hoofdstraat, Apeldoorn",
+  "url": "https://www.nederwoon.nl/huurwoning/apeldoorn/38855/studio-hoofdstraat"
  },
  "help_sent": true,
  "notice_id": null,
- "offset": 899399702,
+ "offset": 899399703,
  "queue": [
-  {
-   "key": "Nederwoon:38855",
-   "star": true,
-   "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Студия: Hoofdstraat, Apeldoorn</b>\n💶 €774/мес · 📐 29 м² · 🚪 комнат: 1\n📅 свободно с 2026-12-01\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.nederwoon.nl/huurwoning/apeldoorn/38855/studio-hoofdstraat\">Nederwoon</a>",
-   "title": "Hoofdstraat, Apeldoorn",
-   "url": "https://www.nederwoon.nl/huurwoning/apeldoorn/38855/studio-hoofdstraat"
-  },
   {
    "key": "Nederwoon:38921",
    "star": true,
@@ -160,6 +153,11 @@
    "key": "Marktplaats:a1533986699",
    "title": "Studio Prins Willem-Alexanderlaan in Apeldoorn",
    "url": "https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1533986699-studio-prins-willem-alexanderlaan-in-apeldoorn"
+  },
+  "63": {
+   "key": "Marktplaats:a1533883718",
+   "title": "Appartement te huur in Apeldoorn - 20 m² - 1 kamer",
+   "url": "https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533883718-appartement-te-huur-in-apeldoorn-20-m2-1-kamer"
   }
  },
  "seen": {
@@ -212,6 +210,12 @@
    "price": 706,
    "size": 20,
    "street": ""
+  },
+  {
+   "kind": "Студия",
+   "price": 774,
+   "size": 29,
+   "street": "hoofdstraat"
   }
  ]
 }
