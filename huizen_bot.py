@@ -80,51 +80,80 @@ def to_int(text: str | None) -> int | None:
     return int(digits) if digits else None
 
 
-# ---------------------------------------------------------------- Pararius
-def pararius() -> list[Listing]:
+# ------------------------------------------------- Pararius / Huurwoningen
+# У обоих сайтов одинаковая разметка (это одна компания).
+def guess_kind(text: str) -> str:
+    t = text.lower()
+    if "studio" in t:
+        return "studio"
+    if re.search(r"appartement|apartment|flat|bovenwoning|benedenwoning|maisonnette|penthouse", t):
+        return "apartment"
+    if re.search(r"(^|[^\d\s-])\s*kamer(?!s)|\broom\b", t):
+        return "room"
+    if re.search(r"woning|huis|house", t):
+        return "house"
+    return "apartment"
+
+
+def pararius_like(source: str, base: str, url_for_page) -> list[Listing]:
     out = []
     for city in CONFIG["cities"]:
         slug = city.lower().replace(" ", "-")
+        ids = set()
         for page in range(1, 4):
-            url = f"https://www.pararius.com/apartments/{slug}/0-{SEARCH_PRICE}"
-            if page > 1:
-                url += f"/page-{page}"
-            soup = BeautifulSoup(get(url).text, "html.parser")
-            items = soup.select("section.listing-search-item--for-rent")
+            soup = BeautifulSoup(get(url_for_page(slug, page)).text, "html.parser")
+            items = soup.select("section.listing-search-item")
+            fresh = 0
             for it in items:
                 link = it.select_one(".listing-search-item__link--title")
                 if not link:
                     continue
                 href = link["href"]
+                lid = href.strip("/").split("/")[2]
+                if lid in ids:
+                    continue
+                ids.add(lid)
+                fresh += 1
                 label = it.select_one(".listing-label")
-                label_text = label.get_text(" ", strip=True) if label else ""
                 feats = {
                     li["class"][-1].split("--")[-1]: li.get_text(" ", strip=True)
                     for li in it.select(".illustrated-features li")
                 }
-                price_el = it.select_one(".listing-search-item__price-main") or it.select_one(
-                    ".listing-search-item__price")
+                price_el = (it.select_one(".listing-search-item__price-main")
+                            or it.select_one(".listing-search-item__price"))
                 sub = it.select_one(".listing-search-item__sub-title")
-                kind = "studio" if href.startswith("/studio") else (
-                    "room" if href.startswith("/room") else "apartment")
+                title = link.get_text(" ", strip=True)
                 l = Listing(
-                    source="Pararius",
-                    id=href.split("/")[3],
-                    url="https://www.pararius.com" + href,
-                    title=link.get_text(" ", strip=True) + (
-                        f", {sub.get_text(' ', strip=True)}" if sub else ""),
+                    source=source,
+                    id=lid,
+                    url=base + href,
+                    title=title + (f", {sub.get_text(' ', strip=True)}" if sub else ""),
                     price=to_int(price_el.get_text() if price_el else None),
                     size=to_int(feats.get("surface-area")),
                     rooms=to_int(feats.get("number-of-rooms")),
-                    kind=kind,
+                    kind=guess_kind(href.split("/")[1] + " " + title),
                     city=city,
                 )
-                if label_text:
-                    l.notes.append(label_text)
+                if label:
+                    l.notes.append(label.get_text(" ", strip=True))
                 out.append(l)
-            if not soup.select_one(".pagination__item--next a, a.pagination__link--next"):
+            if not fresh or len(items) < 20:
                 break
     return out
+
+
+def pararius() -> list[Listing]:
+    return pararius_like(
+        "Pararius", "https://www.pararius.com",
+        lambda slug, page: f"https://www.pararius.com/apartments/{slug}/0-{SEARCH_PRICE}"
+                           + (f"/page-{page}" if page > 1 else ""))
+
+
+def huurwoningen() -> list[Listing]:
+    return pararius_like(
+        "Huurwoningen", "https://www.huurwoningen.nl",
+        lambda slug, page: f"https://www.huurwoningen.nl/in/{slug}/?price=0-{SEARCH_PRICE}"
+                           + (f"&page={page}" if page > 1 else ""))
 
 
 def pararius_details(l: Listing) -> None:
@@ -132,10 +161,11 @@ def pararius_details(l: Listing) -> None:
     soup = BeautifulSoup(get(l.url).text, "html.parser")
     text = soup.get_text(" ", strip=True).lower()
     l.registration = check_registration_text(text)
-    m = re.search(r"available\s+(?:from\s+)?(\d{2})-(\d{2})-(\d{4})", text)
+    m = re.search(r"(?:available|beschikbaar)\s+(?:from\s+|vanaf\s+|per\s+)?"
+                  r"(\d{2})-(\d{2})-(\d{4})", text)
     if m:
         l.available = f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
-    elif "available immediately" in text:
+    elif "available immediately" in text or "per direct" in text or "direct beschikbaar" in text:
         l.available = date.today().isoformat()
 
 
@@ -227,9 +257,138 @@ def wonen123() -> list[Listing]:
     return out
 
 
-def wonen123_details(l: Listing) -> None:
+def text_details(l: Listing) -> None:
+    """Общий разбор страницы объявления: ищем упоминания регистрации."""
     text = BeautifulSoup(get(l.url).text, "html.parser").get_text(" ", strip=True).lower()
     l.registration = check_registration_text(text)
+
+
+wonen123_details = text_details
+
+NL_MONTHS = {m: i for i, m in enumerate(
+    ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus",
+     "september", "oktober", "november", "december"], 1)}
+
+
+def nl_date(text: str) -> str | None:
+    m = re.search(r"(\d{1,2})\s+(" + "|".join(NL_MONTHS) + r")\s+(\d{4})", text.lower())
+    if m:
+        return f"{m.group(3)}-{NL_MONTHS[m.group(2)]:02d}-{int(m.group(1)):02d}"
+    if "per direct" in text.lower() or "direct beschikbaar" in text.lower():
+        return date.today().isoformat()
+    return None
+
+
+# ---------------------------------------------------------------- Marktplaats
+def marktplaats() -> list[Listing]:
+    out, ids = [], set()
+    base = "https://www.marktplaats.nl/lrp/api/search?l1CategoryId=1032&limit=100&offset=0"
+    for city in CONFIG["cities"]:
+        # Все «дома и комнаты» по дате + отдельно раздел «huizen te huur»,
+        # где агентства выкладывают студии и квартиры.
+        found = []
+        for extra in ("&sortBy=SORT_INDEX&sortOrder=DECREASING", "&l2CategoryId=2153"):
+            found += get(f"{base}&query={city.lower()}{extra}").json().get("listings", [])
+            time.sleep(1)
+        for x in found:
+            if x["itemId"] in ids:
+                continue
+            ids.add(x["itemId"])
+            title = x.get("title", "")
+            low = title.lower()
+            price_info = x.get("priceInfo") or {}
+            price = (price_info.get("priceCents") or 0) // 100 or None
+            where = ((x.get("location") or {}).get("cityName") or "")
+            if city.lower() not in (where + " " + low).lower():
+                continue
+            vip = x.get("vipUrl", "")
+            # Только разделы «сдаётся дом/квартира/комната»: без гаражей, «ищу жильё» и т.п.
+            if not re.search(r"/(huizen-te-huur|kamers-te-huur|appartementen-te-huur)/", vip):
+                continue
+            if "te koop" in low or "gevraagd" in low or (price and price > 5000):
+                continue
+            attrs = {a.get("key"): str(a.get("value", "")) for a in x.get("attributes", [])}
+            size = re.search(r"(\d+)\s*m²", title) or re.search(r"^(\d+)$", attrs.get("livingArea", ""))
+            out.append(Listing(
+                source="Marktplaats",
+                id=x["itemId"],
+                url="https://www.marktplaats.nl" + x.get("vipUrl", ""),
+                title=title,
+                price=price,
+                size=int(size.group(1)) if size else None,
+                rooms=to_int(attrs.get("numberOfRooms")),
+                kind=guess_kind(title),
+                city=city,
+            ))
+    return out
+
+
+# ---------------------------------------------------------------- Nederwoon
+def nederwoon() -> list[Listing]:
+    out = []
+    for city in CONFIG["cities"]:
+        soup = BeautifulSoup(get(
+            f"https://www.nederwoon.nl/search?search_type=1&city={city}").text, "html.parser")
+        for card in soup.select("div.location"):
+            link = card.find("a", href=re.compile(r"/huurwoning/"))
+            if not link:
+                continue
+            text = " ".join(card.get_text(" ", strip=True).split())
+            if city.lower() not in text.lower():
+                continue
+            href = link["href"]
+            price = re.search(r"€\s*([\d.,]+)", text)
+            size = re.search(r"Woonoppervlakte\s+(\d+)", text)
+            rooms = re.search(r"(\d+)\s+kamer", text)
+            kind_word = re.search(r"\b(Studio|Appartement|Kamer|Woonhuis|Bovenwoning|"
+                                  r"Benedenwoning|Maisonnette)\b", text)
+            out.append(Listing(
+                source="Nederwoon",
+                id=href.strip("/").split("/")[2],
+                url=("https://www.nederwoon.nl" + href) if href.startswith("/") else href,
+                title=f"{link.get_text(' ', strip=True)}, {city}",
+                price=to_int(price.group(1)) if price else None,
+                size=int(size.group(1)) if size else None,
+                rooms=int(rooms.group(1)) if rooms else None,
+                kind=guess_kind(kind_word.group(1) if kind_word else href),
+                city=city,
+                available=nl_date(text),
+            ))
+    return out
+
+
+# ---------------------------------------------------------------- Kamer.nl
+def kamernl() -> list[Listing]:
+    out, ids = [], set()
+    for city in CONFIG["cities"]:
+        slug = city.lower().replace(" ", "-")
+        for kind_slug in ("kamer", "studio", "appartement"):
+            soup = BeautifulSoup(get(f"https://www.kamer.nl/huren/{kind_slug}-{slug}/").text,
+                                 "html.parser")
+            for sc in soup.find_all("script", type="application/ld+json"):
+                try:
+                    data = json.loads(sc.string or "")
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(data, dict) or data.get("@type") != "ItemList":
+                    continue
+                for x in data.get("itemListElement", []):
+                    url = x.get("url", "")
+                    m = re.search(r"/huren/([a-z]+)-" + re.escape(slug) + r"/([^/]+)/(\d+)/", url)
+                    if not m or m.group(3) in ids:
+                        continue
+                    ids.add(m.group(3))
+                    out.append(Listing(
+                        source="Kamer.nl",
+                        id=m.group(3),
+                        url=url,
+                        title=f"{m.group(1).capitalize()} {m.group(2).replace('-', ' ').title()}, {city}",
+                        price=to_int(str(x.get("price", "")).split(".")[0]),
+                        kind=guess_kind(m.group(1)),
+                        city=city,
+                        available=x.get("startTime"),
+                    ))
+    return out
 
 
 def next_data(html: str) -> dict:
@@ -262,7 +421,7 @@ def matches(l: Listing, c: dict) -> bool:
         return False
     if l.kind not in c["types"]:
         return False
-    if l.price is None or l.price > c["max_price"]:
+    if l.price is None or l.price > c["max_price"] or l.price < c.get("min_price", 0):
         return False
     if l.size is not None and l.size < c["min_size_m2"]:
         return False
@@ -302,7 +461,8 @@ def format_msg(l: Listing) -> str:
         parts.append(f"🚪 комнат: {l.rooms}")
     lines.append(" · ".join(parts))
     if l.available:
-        lines.append(f"📅 свободно с {l.available}")
+        lines.append("📅 свободно сейчас" if l.available <= date.today().isoformat()
+                     else f"📅 свободно с {l.available}")
     reg = {True: "✅ регистрация возможна", False: "❌ без регистрации",
            None: "❓ регистрация не указана, уточни у арендодателя"}[l.registration]
     lines.append(reg)
@@ -333,7 +493,11 @@ def send(text: str) -> None:
 
 # ---------------------------------------------------------------- main
 SOURCES = [("Pararius", pararius, pararius_details),
+           ("Huurwoningen", huurwoningen, pararius_details),
            ("Kamernet", kamernet, kamernet_details),
+           ("Marktplaats", marktplaats, text_details),
+           ("Nederwoon", nederwoon, text_details),
+           ("Kamer.nl", kamernl, text_details),
            ("123wonen", wonen123, wonen123_details)]
 
 
@@ -341,6 +505,7 @@ def main() -> int:
     dry = "--dry-run" in sys.argv
     if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
         sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
     seen: dict = json.loads(SEEN_FILE.read_text("utf-8")) if SEEN_FILE.exists() else {}
     first_run = "_started" not in seen
     seen.setdefault("_started", date.today().isoformat())
