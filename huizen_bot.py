@@ -476,19 +476,32 @@ def esc(s: str) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def send(text: str) -> None:
+def send(text: str, html: bool = True, attempt: int = 0) -> None:
     token = os.environ["TELEGRAM_TOKEN"]
     chat = os.environ["TELEGRAM_CHAT_ID"]
-    r = requests.post(
-        f"https://api.telegram.org/bot{token}/sendMessage",
-        json={"chat_id": chat, "text": text, "parse_mode": "HTML",
-              "disable_web_page_preview": False},
-        timeout=30,
-    )
-    if r.status_code == 429:
+    payload = {"chat_id": chat, "text": text, "disable_web_page_preview": False}
+    if html:
+        payload["parse_mode"] = "HTML"
+    try:
+        r = requests.post(f"https://api.telegram.org/bot{token}/sendMessage",
+                          json=payload, timeout=30)
+    except requests.RequestException:
+        if attempt < 3:
+            time.sleep(5)
+            return send(text, html, attempt + 1)
+        raise
+    if r.status_code == 429 and attempt < 5:  # Telegram просит подождать
         time.sleep(r.json().get("parameters", {}).get("retry_after", 5) + 1)
-        return send(text)
-    r.raise_for_status()
+        return send(text, html, attempt + 1)
+    if r.status_code == 400 and html:
+        # Не разобрался HTML: отправляем то же самое простым текстом.
+        print("Telegram 400:", r.text[:300], file=sys.stderr)
+        plain = re.sub(r'<a href="([^"]+)">[^<]*</a>', r"\1", text)
+        plain = re.sub(r"<[^>]+>", "", plain)
+        plain = plain.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+        return send(plain, html=False, attempt=attempt)
+    if not r.ok:
+        raise RuntimeError(f"Telegram {r.status_code}: {r.text[:300]}")
 
 
 # ---------------------------------------------------------------- main
@@ -525,29 +538,46 @@ def main() -> int:
                 details(l)
                 time.sleep(1)
             except Exception as e:
-                l.notes.append(f"детали не загрузились: {e}")
-            seen[l.key] = date.today().isoformat()
+                print(f"{name}: детали {l.url} не загрузились: {e}", file=sys.stderr)
             if passes_details(l):
                 new.append(l)
+            else:  # «без регистрации»: запоминаем, чтобы не проверять снова
+                seen[l.key] = date.today().isoformat()
+
+    def save() -> None:
+        if not dry:
+            SEEN_FILE.write_text(json.dumps(seen, indent=1, sort_keys=True), "utf-8")
 
     print(f"Новых подходящих: {len(new)}")
+    sent = 0
     for l in new:
         msg = format_msg(l)
         print("\n" + msg)
-        if not dry:
+        if dry:
+            continue
+        try:
             send(msg)
-            time.sleep(1)
+        except Exception as e:  # не запоминаем: попробуем отправить в следующий раз
+            errors.append(f"отправка {l.url}: {e}")
+            continue
+        seen[l.key] = date.today().isoformat()
+        sent += 1
+        save()  # запоминаем сразу, чтобы при сбое не было повторов
+        time.sleep(1.5)
 
-    if not dry:
-        if first_run:
+    if not dry and first_run:
+        try:
             send(f"🤖 Бот запущен. Слежу за жильём в {', '.join(CONFIG['cities'])} "
                  f"до €{CONFIG['max_price']}. Выше всё, что подходит прямо сейчас "
-                 f"({len(new)} шт.), дальше буду присылать только новое.")
-        SEEN_FILE.write_text(json.dumps(seen, indent=1, sort_keys=True), "utf-8")
+                 f"({sent} шт.), дальше буду присылать только новое.")
+        except Exception as e:
+            errors.append(f"стартовое сообщение: {e}")
+    save()
     for e in errors:
         print("ОШИБКА", e, file=sys.stderr)
     # Падаем, только если не сработал ни один источник: тогда GitHub пришлёт письмо.
-    return 1 if len(errors) == len(SOURCES) else 0
+    source_errors = [e for e in errors if e.split(":")[0] in {n for n, _, _ in SOURCES}]
+    return 1 if len(source_errors) == len(SOURCES) else 0
 
 
 if __name__ == "__main__":
