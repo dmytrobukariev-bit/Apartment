@@ -663,6 +663,102 @@ def scrape(st: dict) -> list[str]:
     return errors
 
 
+# ---------------------------------------------------------------- описание + перевод
+DESC_SELECTORS = [
+    "div.description-content",                      # Nederwoon
+    "[class*=Description-module-description]",      # Marktplaats
+    "[class*=About_collapsedText]",                 # Kamernet
+    ".listing-detail-description__additional",      # Pararius / Huurwoningen
+    "div.leading-7.text-dark-gray-700",             # Kamer.nl
+]
+DESC_MAX = 1500
+
+
+def get_description(url: str) -> str:
+    """Достаёт текст описания со страницы объявления (пустая строка, если не вышло)."""
+    try:
+        soup = BeautifulSoup(get(url).text, "html.parser")
+    except Exception as e:
+        print("Описание не загрузилось:", url, e, file=sys.stderr)
+        return ""
+    for sel in DESC_SELECTORS:
+        el = soup.select_one(sel)
+        if el and len(el.get_text(strip=True)) > 80:
+            text = el.get_text("\n", strip=True)
+            break
+    else:
+        candidates = []
+        for sc in soup.find_all("script", type="application/ld+json"):
+            try:
+                data = json.loads(sc.string or "")
+            except json.JSONDecodeError:
+                continue
+            if isinstance(data, dict) and isinstance(data.get("description"), str):
+                candidates.append(BeautifulSoup(data["description"], "html.parser").get_text(" "))
+        text = max(candidates, key=len, default="")
+        if len(text) < 150:
+            return ""
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{2,}", "\n", text).strip()
+    if len(text) > DESC_MAX:
+        text = text[:DESC_MAX].rsplit(" ", 1)[0] + "…"
+    return text
+
+
+def _chunks(text: str, size: int) -> list[str]:
+    parts, cur = [], ""
+    for sent in re.split(r"(?<=[.!?\n])\s*", text):
+        if len(cur) + len(sent) + 1 > size and cur:
+            parts.append(cur)
+            cur = ""
+        cur += (" " if cur else "") + sent[:size]
+    if cur:
+        parts.append(cur)
+    return parts
+
+
+def translate_ru(text: str) -> str | None:
+    """Перевод на русский: сначала Google, потом MyMemory. None, если оба не сработали."""
+    try:
+        r = requests.get("https://translate.googleapis.com/translate_a/single",
+                         params={"client": "gtx", "sl": "auto", "tl": "ru", "dt": "t", "q": text},
+                         headers=HEADERS, timeout=20)
+        if r.ok:
+            out = "".join(p[0] for p in r.json()[0] if p and p[0])
+            if out.strip():
+                return out
+    except Exception as e:
+        print("Google перевод:", e, file=sys.stderr)
+    try:
+        out = []
+        for chunk in _chunks(text, 450):  # MyMemory: до 500 символов за запрос
+            r = requests.get("https://api.mymemory.translated.net/get",
+                             params={"q": chunk, "langpair": "nl|ru"}, timeout=20)
+            data = r.json()
+            if r.ok and data.get("responseStatus") in (200, "200") and not data.get("quotaFinished"):
+                out.append(data["responseData"]["translatedText"])
+            else:
+                return None
+            time.sleep(0.5)
+        return " ".join(out) or None
+    except Exception as e:
+        print("MyMemory перевод:", e, file=sys.stderr)
+        return None
+
+
+def description_block(url: str) -> str:
+    original = get_description(url)
+    if not original:
+        return ""
+    ru = translate_ru(original)
+    if ru and len(ru) > 2500:
+        ru = ru[:2500].rsplit(" ", 1)[0] + "…"
+    if ru:
+        return f"\n\n📝 <b>Описание</b> (перевод):\n<blockquote expandable>{esc(ru)}</blockquote>"
+    return (f"\n\n📝 <b>Описание</b> (перевод сейчас недоступен):\n"
+            f"<blockquote expandable>{esc(original)}</blockquote>")
+
+
 # ---------------------------------------------------------------- queue
 def show_next(st: dict) -> None:
     """Показывает следующее объявление из очереди, если сейчас ничего не показано."""
@@ -677,9 +773,10 @@ def show_next(st: dict) -> None:
     st.setdefault("shown_fps", []).append(fingerprint(item))
     st["shown_fps"] = st["shown_fps"][-1000:]
     left = len(st["queue"])
-    text = item["text"] + (f"\n\n📬 В очереди ещё: {left}" if left else "\n\n📬 Это последнее в очереди")
+    full = item["text"] + description_block(item["url"])
+    text = full + (f"\n\n📬 В очереди ещё: {left}" if left else "\n\n📬 Это последнее в очереди")
     mid = send(text, LIKE_BUTTONS)
-    st["current"] = {"message_id": mid, "key": item["key"], "text": item["text"],
+    st["current"] = {"message_id": mid, "key": item["key"], "text": full,
                      "title": item["title"], "url": item["url"]}
 
 
