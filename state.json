@@ -1,23 +1,16 @@
 {
  "_started": null,
  "current": {
-  "key": "Marktplaats:a1533883711",
-  "message_id": 81,
-  "text": "ℹ️ <i>Дополнительный вариант (вне основных критериев)</i>\n🏠 <b>Квартира: Appartement te huur in Apeldoorn - 43 m² - 2 kamers</b>\n💶 €933/мес · 📐 43 м² · 🚪 комнат: 2\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533883711-appartement-te-huur-in-apeldoorn-43-m2-2-kamers\">Marktplaats</a>\n\n📝 <b>Описание</b> (перевод):\n<blockquote expandable>Хотите просмотреть больше фотографий или получить дополнительную информацию об этом объекте недвижимости?\nНа нашем сайте вы найдете обширную информацию о недвижимости, все доступные фотографии, стоимость аренды, условия аренды, наличие и прямой контакт с владельцем.\nПолную презентацию объекта недвижимости можно посмотреть на сайте: https://huurhuisvinder.nl.\nВам интересно?\nПосетите наш сайт и свяжитесь с владельцем напрямую!</blockquote>",
-  "title": "Appartement te huur in Apeldoorn - 43 m² - 2 kamers",
-  "url": "https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533883711-appartement-te-huur-in-apeldoorn-43-m2-2-kamers"
+  "key": "Marktplaats:a1533955290",
+  "message_id": 82,
+  "text": "ℹ️ <i>Дополнительный вариант (вне основных критериев)</i>\n🏠 <b>Квартира: Appartement te huur in Apeldoorn - 40 m² - 2 kamers</b>\n💶 €926/мес · 📐 40 м² · 🚪 комнат: 2\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533955290-appartement-te-huur-in-apeldoorn-40-m2-2-kamers\">Marktplaats</a>\n\n📝 <b>Описание</b> (перевод):\n<blockquote expandable>Хотите просмотреть больше фотографий или получить дополнительную информацию об этом объекте недвижимости?\nНа нашем сайте вы найдете обширную информацию о недвижимости, все доступные фотографии, стоимость аренды, условия аренды, наличие и прямой контакт с владельцем.\nПолную презентацию объекта недвижимости можно посмотреть на сайте: https://huurhuisvinder.nl.\nВам интересно?\nПосетите наш сайт и свяжитесь с владельцем напрямую!</blockquote>",
+  "title": "Appartement te huur in Apeldoorn - 40 m² - 2 kamers",
+  "url": "https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533955290-appartement-te-huur-in-apeldoorn-40-m2-2-kamers"
  },
  "help_sent": true,
  "notice_id": null,
- "offset": 899399718,
+ "offset": 899399719,
  "queue": [
-  {
-   "key": "Marktplaats:a1533955290",
-   "star": false,
-   "text": "ℹ️ <i>Дополнительный вариант (вне основных критериев)</i>\n🏠 <b>Квартира: Appartement te huur in Apeldoorn - 40 m² - 2 kamers</b>\n💶 €926/мес · 📐 40 м² · 🚪 комнат: 2\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533955290-appartement-te-huur-in-apeldoorn-40-m2-2-kamers\">Marktplaats</a>",
-   "title": "Appartement te huur in Apeldoorn - 40 m² - 2 kamers",
-   "url": "https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533955290-appartement-te-huur-in-apeldoorn-40-m2-2-kamers"
-  },
   {
    "key": "Marktplaats:a1534035208",
    "star": false,
@@ -219,6 +212,12 @@
    "kind": "Квартира",
    "price": 933,
    "size": 43,
+   "street": ""
+  },
+  {
+   "kind": "Квартира",
+   "price": 926,
+   "size": 40,
    "street": ""
   }
  ]
