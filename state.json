@@ -1,30 +1,16 @@
 {
  "_started": null,
  "current": {
-  "key": "Marktplaats:a1534119393",
-  "message_id": 59,
-  "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Студия: Studio Wilhelmina Druckerstraat in Apeldoorn</b>\n💶 €576/мес\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1534119393-studio-wilhelmina-druckerstraat-in-apeldoorn\">Marktplaats</a>",
-  "title": "Studio Wilhelmina Druckerstraat in Apeldoorn",
-  "url": "https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1534119393-studio-wilhelmina-druckerstraat-in-apeldoorn"
+  "key": "Marktplaats:a1533883718",
+  "message_id": 63,
+  "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Квартира: Appartement te huur in Apeldoorn - 20 m² - 1 kamer</b>\n💶 €706/мес · 📐 20 м² · 🚪 комнат: 1\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533883718-appartement-te-huur-in-apeldoorn-20-m2-1-kamer\">Marktplaats</a>",
+  "title": "Appartement te huur in Apeldoorn - 20 m² - 1 kamer",
+  "url": "https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533883718-appartement-te-huur-in-apeldoorn-20-m2-1-kamer"
  },
  "help_sent": true,
  "notice_id": null,
- "offset": 899399700,
+ "offset": 899399702,
  "queue": [
-  {
-   "key": "Marktplaats:a1533986699",
-   "star": true,
-   "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Студия: Studio Prins Willem-Alexanderlaan in Apeldoorn</b>\n💶 €610/мес\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1533986699-studio-prins-willem-alexanderlaan-in-apeldoorn\">Marktplaats</a>",
-   "title": "Studio Prins Willem-Alexanderlaan in Apeldoorn",
-   "url": "https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1533986699-studio-prins-willem-alexanderlaan-in-apeldoorn"
-  },
-  {
-   "key": "Marktplaats:a1533883718",
-   "star": true,
-   "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Квартира: Appartement te huur in Apeldoorn - 20 m² - 1 kamer</b>\n💶 €706/мес · 📐 20 м² · 🚪 комнат: 1\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533883718-appartement-te-huur-in-apeldoorn-20-m2-1-kamer\">Marktplaats</a>",
-   "title": "Appartement te huur in Apeldoorn - 20 m² - 1 kamer",
-   "url": "https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533883718-appartement-te-huur-in-apeldoorn-20-m2-1-kamer"
-  },
   {
    "key": "Nederwoon:38855",
    "star": true,
@@ -164,6 +150,16 @@
    "key": "Marktplaats:a1533910463",
    "title": "Studio Hoofdstraat in Apeldoorn",
    "url": "https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1533910463-studio-hoofdstraat-in-apeldoorn"
+  },
+  "59": {
+   "key": "Marktplaats:a1534119393",
+   "title": "Studio Wilhelmina Druckerstraat in Apeldoorn",
+   "url": "https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1534119393-studio-wilhelmina-druckerstraat-in-apeldoorn"
+  },
+  "62": {
+   "key": "Marktplaats:a1533986699",
+   "title": "Studio Prins Willem-Alexanderlaan in Apeldoorn",
+   "url": "https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1533986699-studio-prins-willem-alexanderlaan-in-apeldoorn"
   }
  },
  "seen": {
@@ -204,5 +200,18 @@
   "Nederwoon:38932": "2026-11-15",
   "Nederwoon:38954": "2026-11-15"
  },
- "shown_fps": []
+ "shown_fps": [
+  {
+   "kind": "Студия",
+   "price": 610,
+   "size": 0,
+   "street": "willem-alexanderlaan"
+  },
+  {
+   "kind": "Квартира",
+   "price": 706,
+   "size": 20,
+   "street": ""
+  }
+ ]
 }
