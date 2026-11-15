@@ -332,7 +332,8 @@ def main() -> int:
     if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
         sys.stdout.reconfigure(encoding="utf-8")
     seen: dict = json.loads(SEEN_FILE.read_text("utf-8")) if SEEN_FILE.exists() else {}
-    first_run = not seen
+    first_run = "_started" not in seen
+    seen.setdefault("_started", date.today().isoformat())
     errors, new = [], []
 
     for name, fetch, details in SOURCES:
