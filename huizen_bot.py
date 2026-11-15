@@ -86,7 +86,7 @@ def pararius() -> list[Listing]:
     for city in CONFIG["cities"]:
         slug = city.lower().replace(" ", "-")
         for page in range(1, 4):
-            url = f"https://www.pararius.com/apartments/{slug}/0-{CONFIG['max_price']}"
+            url = f"https://www.pararius.com/apartments/{slug}/0-{SEARCH_PRICE}"
             if page > 1:
                 url += f"/page-{page}"
             soup = BeautifulSoup(get(url).text, "html.parser")
@@ -148,7 +148,7 @@ def kamernet() -> list[Listing]:
     for city in CONFIG["cities"]:
         slug = city.lower().replace(" ", "-")
         url = (f"https://kamernet.nl/en/for-rent/properties-{slug}"
-               f"?maxRent={CONFIG['max_price']}&sort=1")
+               f"?maxRent={SEARCH_PRICE}&sort=1")
         html = get(url).text
         data = next_data(html)
         resp = data["props"]["pageProps"]["targetPageProps"]["findListingsResponse"]
@@ -248,8 +248,16 @@ def check_registration_text(text: str) -> bool | None:
     return None
 
 
+EXTRA = {**CONFIG, **CONFIG.get("extra", {})}
+SEARCH_PRICE = max(CONFIG["max_price"], EXTRA["max_price"])
+
+
 def passes_basic(l: Listing) -> bool:
-    c = CONFIG
+    """Подходит хотя бы под расширенные критерии."""
+    return matches(l, CONFIG) or matches(l, EXTRA)
+
+
+def matches(l: Listing, c: dict) -> bool:
     if l.city and l.city.lower() not in [x.lower() for x in c["cities"]]:
         return False
     if l.kind not in c["types"]:
@@ -281,8 +289,10 @@ def warnings(l: Listing) -> list[str]:
 
 # ---------------------------------------------------------------- telegram
 def format_msg(l: Listing) -> str:
-    kinds = {"apartment": "Квартира", "studio": "Студия", "room": "Комната"}
-    lines = [f"🏠 <b>{esc(kinds.get(l.kind, l.kind))}: {esc(l.title)}</b>"]
+    kinds = {"apartment": "Квартира", "studio": "Студия", "room": "Комната", "house": "Дом"}
+    head = ("⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>" if matches(l, CONFIG)
+            else "ℹ️ <i>Дополнительный вариант (вне основных критериев)</i>")
+    lines = [head, f"🏠 <b>{esc(kinds.get(l.kind, l.kind))}: {esc(l.title)}</b>"]
     parts = []
     if l.price:
         parts.append(f"💶 €{l.price}/мес")
