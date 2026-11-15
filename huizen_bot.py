@@ -567,6 +567,61 @@ def save_state(st: dict) -> None:
     STATE_FILE.write_text(json.dumps(st, indent=1, ensure_ascii=False, sort_keys=True), "utf-8")
 
 
+# ---------------------------------------------------------------- дубли
+# Одна и та же квартира часто висит на нескольких сайтах (например, Nederwoon
+# и Marktplaats). Узнаём её по улице, цене (±€10) и площади.
+STREET_RE = re.compile(
+    r"([a-zà-ÿ][\w\-'.]*(?:straat|laan|weg|plein|gracht|kade|singel|hof|park|dreef|pad|"
+    r"steeg|markt|dijk|veld|erf|hoeve|boulevard|allee|wal|haven|ring|baan|berg|kamp|gang|"
+    r"poort|kanaal|kanaal-noord|kanaal-zuid))\b")
+
+
+def fingerprint(item: dict) -> dict:
+    text = item.get("title", "") + " " + item.get("text", "")
+    head = (item.get("title") or "").lower()
+    street = STREET_RE.findall(head.replace("apeldoorn", " "))
+    price = re.search(r"€(\d+)/мес", text)
+    size = re.search(r"📐 (\d+) м²", text) or re.search(r"(\d+)\s*m²", text)
+    kind = re.search(r"🏠 <b>(\w+)", text)
+    return {"street": street[-1] if street else "",
+            "price": int(price.group(1)) if price else 0,
+            "size": int(size.group(1)) if size else 0,
+            "kind": kind.group(1) if kind else ""}
+
+
+def same_home(a: dict, b: dict) -> bool:
+    if not a["price"] or not b["price"] or abs(a["price"] - b["price"]) > 10:
+        return False
+    if a["street"] and b["street"]:
+        return a["street"] == b["street"] and (not a["size"] or not b["size"]
+                                               or abs(a["size"] - b["size"]) <= 2)
+    if a["size"] and b["size"]:
+        return a["size"] == b["size"]
+    # Улица или площадь неизвестны у одного из двух: та же цена (±€2) и тот же тип
+    return abs(a["price"] - b["price"]) <= 2 and a.get("kind") == b.get("kind") != ""
+
+
+def is_duplicate(st: dict, item: dict) -> bool:
+    fp = fingerprint(item)
+    others = st.setdefault("shown_fps", []) + [fingerprint(q) for q in st["queue"]]
+    if st["current"]:
+        others.append(fingerprint(st["current"]))
+    return any(same_home(fp, o) for o in others)
+
+
+def dedupe_queue(st: dict) -> None:
+    """Убирает из уже собранной очереди повторы (одно жильё с разных сайтов)."""
+    queue, st["queue"] = st["queue"], []
+    removed = 0
+    for item in queue:
+        if is_duplicate(st, item):
+            removed += 1
+        else:
+            st["queue"].append(item)
+    if removed:
+        print(f"Убрано повторов из очереди: {removed}")
+
+
 # ---------------------------------------------------------------- scraping
 def scrape(st: dict) -> list[str]:
     """Проверяет все сайты и кладёт новые подходящие объявления в очередь."""
@@ -592,6 +647,9 @@ def scrape(st: dict) -> list[str]:
                 continue
             item = {"key": l.key, "text": format_msg(l), "star": matches(l, CONFIG),
                     "title": l.title, "url": l.url}
+            if is_duplicate(st, item):
+                print(f"Повтор, пропускаю: {l.title}")
+                continue
             # ⭐ встают перед дополнительными вариантами
             pos = len(st["queue"])
             if item["star"]:
@@ -616,6 +674,8 @@ def show_next(st: dict) -> None:
         delete(st["notice_id"])
         st["notice_id"] = None
     item = st["queue"].pop(0)
+    st.setdefault("shown_fps", []).append(fingerprint(item))
+    st["shown_fps"] = st["shown_fps"][-1000:]
     left = len(st["queue"])
     text = item["text"] + (f"\n\n📬 В очереди ещё: {left}" if left else "\n\n📬 Это последнее в очереди")
     mid = send(text, LIKE_BUTTONS)
@@ -772,6 +832,7 @@ RUN_FOR = 5 * 3600 + 40 * 60  # GitHub даёт до 6 часов на запу�
 
 def serve() -> int:
     st = load_state()
+    dedupe_queue(st)
     if not st.get("help_sent"):
         st["help_sent"] = True
         send(HELP)
