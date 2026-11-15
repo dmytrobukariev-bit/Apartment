@@ -512,10 +512,10 @@ def tg(method: str, attempt: int = 0, http_timeout: int = 40, **params) -> dict:
     return r.json().get("result")
 
 
-def send(text: str, buttons: list | None = None) -> int:
+def send(text: str, buttons: list | None = None, disable_preview: bool = False) -> int:
     """Отправляет сообщение (HTML, при ошибке разметки простым текстом). Возвращает message_id."""
     params = {"chat_id": os.environ["TELEGRAM_CHAT_ID"], "text": text,
-              "parse_mode": "HTML", "disable_web_page_preview": False}
+              "parse_mode": "HTML", "disable_web_page_preview": disable_preview}
     if buttons:
         params["reply_markup"] = {"inline_keyboard": buttons}
     try:
@@ -856,7 +856,8 @@ def on_button(st: dict, action: str, mid: int, cq_id: str) -> None:
     is_current = cur and cur["message_id"] == mid
     answer = ""
     if action == "like":
-        info = ({"key": cur["key"], "title": cur["title"], "url": cur["url"]} if is_current
+        info = ({"key": cur["key"], "title": cur["title"], "url": cur["url"],
+                 "summary": short_summary(cur["text"])} if is_current
                 else {"key": "", "title": "объявление", "url": ""})
         st["saved"][str(mid)] = info
         try:
@@ -885,15 +886,40 @@ def on_button(st: dict, action: str, mid: int, cq_id: str) -> None:
     queue_empty_notice(st)
 
 
+def short_summary(text: str) -> str:
+    """Короткая строка из полного текста объявления: тип · цена · площадь · дата."""
+    parts = []
+    kind = re.search(r"🏠 <b>([^:<]+):", text)
+    if kind:
+        parts.append(kind.group(1))
+    price = re.search(r"€(\d+)/мес", text)
+    if price:
+        parts.append(f"€{price.group(1)}/мес")
+    size = re.search(r"(\d+) м²", text)
+    if size:
+        parts.append(f"{size.group(1)} м²")
+    when = re.search(r"📅 свободно (с [^(\n]+?|сейчас)(?:\s*\(|\s*✅|\n|$)", text)
+    if when:
+        parts.append(f"свободно {when.group(1).strip()}")
+    if "✅ регистрация возможна" in text:
+        parts.append("регистрация ✅")
+    return " · ".join(parts)
+
+
 def on_command(st: dict, cmd: str) -> None:
     if cmd == "/saved":
         if not st["saved"]:
             send("Сохранённых пока нет.")
         else:
-            lines = [f'{i}. <a href="{v["url"]}">{esc(v["title"])}</a>' if v["url"]
-                     else f"{i}. {esc(v['title'])}"
-                     for i, v in enumerate(st["saved"].values(), 1)]
-            send("💚 <b>Сохранённые:</b>\n" + "\n".join(lines))
+            lines = []
+            for i, v in enumerate(st["saved"].values(), 1):
+                head = esc(v.get("summary") or v["title"])
+                source = v["key"].split(":")[0] if v.get("key") else "ссылка"
+                link = f' → <a href="{v["url"]}">{esc(source)}</a>' if v["url"] else ""
+                sub = f"\n    {esc(v['title'])}{link}" if v.get("summary") else link
+                lines.append(f"<b>{i}. {head}</b>{sub}")
+            send("💚 <b>Сохранённые:</b>\n\n" + "\n\n".join(lines),
+                 disable_preview=True)
     elif cmd == "/queue":
         stars = sum(q["star"] for q in st["queue"])
         send(f"📬 В очереди: {len(st['queue'])} (из них ⭐ {stars})")
