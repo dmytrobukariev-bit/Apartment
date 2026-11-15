@@ -622,11 +622,31 @@ def dedupe_queue(st: dict) -> None:
         print(f"Убрано повторов из очереди: {removed}")
 
 
+def dedupe_saved(st: dict) -> None:
+    """Одна квартира, сохранённая дважды (с разных сайтов): оставляем одну, с подробностями."""
+    items = list(st["saved"].items())
+    # оставляем самый подробный вариант (с площадью, датой, описанием)
+    items.sort(key=lambda kv: (-len(kv[1].get("summary") or ""), -len(kv[1].get("text") or "")))
+    kept, drop = [], []
+    for sid, v in items:
+        fp = fingerprint({"title": v["title"], "text": v.get("text", "")})
+        if any(same_home(fp, k) for k in kept):
+            drop.append(sid)
+        else:
+            kept.append(fp)
+    for sid in drop:
+        print("Убран повтор из сохранённых:", st["saved"].pop(sid)["title"])
+    if drop:
+        refresh_saved_list(st)
+
+
 # ---------------------------------------------------------------- scraping
 def scrape(st: dict) -> list[str]:
     """Проверяет все сайты и кладёт новые подходящие объявления в очередь."""
     errors, added = [], 0
     queued = {q["key"] for q in st["queue"]}
+    # Сохранённые до появления сводок: дозаполним их, когда встретим на сайте
+    need_info = {v["key"]: v for v in st["saved"].values() if v.get("key") and not v.get("text")}
     for name, fetch, details in SOURCES:
         try:
             found = fetch()
@@ -635,6 +655,11 @@ def scrape(st: dict) -> list[str]:
             continue
         print(f"{name}: найдено {len(found)}")
         for l in found:
+            if l.key in need_info:
+                v = need_info.pop(l.key)
+                v["text"] = nice_dates(format_msg(l)) + description_block(l.url)
+                v["summary"] = short_summary(v["text"])
+                print("Дополнено сохранённое:", v["summary"])
             if l.key in st["seen"] or l.key in queued or not passes_basic(l):
                 continue
             try:
@@ -657,6 +682,7 @@ def scrape(st: dict) -> list[str]:
             st["queue"].insert(pos, item)
             queued.add(l.key)
             added += 1
+    dedupe_saved(st)
     print(f"Добавлено в очередь: {added}, всего в очереди: {len(st['queue'])}")
     for e in errors:
         print("ОШИБКА", e, file=sys.stderr)
