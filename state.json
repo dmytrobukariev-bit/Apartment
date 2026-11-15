@@ -1,16 +1,10 @@
 {
  "_started": null,
  "auto_delete": [],
- "current": {
-  "key": "Marktplaats:a1524260511",
-  "message_id": 108,
-  "text": "ℹ️ <i>Дополнительный вариант (вне основных критериев)</i>\n🏠 <b>Комната: Kamer te huur aan Langeweg in Apeldoorn - Gelderland</b>\n💶 €500/мес\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1524260511-kamer-te-huur-aan-langeweg-in-apeldoorn-gelderland\">Marktplaats</a>\n\n📝 <b>Описание</b> (перевод):\n<blockquote expandable>Сдается комната (16 м²) в общежитии на Лангевег ***.\nПланировка:\nКомната 16 м².\nСовместное пользование 2 ванными комнатами и 1 просторной кухней.\nВо дворе имеется место для хранения велосипедов.\nУдобства:\nДом стал более экологичным благодаря новым оконным рамам, стеклу HR++...\nДля получения дополнительной информации посетите наш сайт.</blockquote>",
-  "title": "Kamer te huur aan Langeweg in Apeldoorn - Gelderland",
-  "url": "https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1524260511-kamer-te-huur-aan-langeweg-in-apeldoorn-gelderland"
- },
+ "current": null,
  "help_sent": true,
- "notice_id": null,
- "offset": 899399739,
+ "notice_id": 109,
+ "offset": 899399740,
  "queue": [],
  "saved": {
   "59": {
