@@ -1,23 +1,16 @@
 {
  "_started": null,
  "current": {
-  "key": "Marktplaats:a1533910463",
-  "message_id": 55,
-  "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Студия: Studio Hoofdstraat in Apeldoorn</b>\n💶 €775/мес\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1533910463-studio-hoofdstraat-in-apeldoorn\">Marktplaats</a>",
-  "title": "Studio Hoofdstraat in Apeldoorn",
-  "url": "https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1533910463-studio-hoofdstraat-in-apeldoorn"
+  "key": "Marktplaats:a1534119393",
+  "message_id": 59,
+  "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Студия: Studio Wilhelmina Druckerstraat in Apeldoorn</b>\n💶 €576/мес\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1534119393-studio-wilhelmina-druckerstraat-in-apeldoorn\">Marktplaats</a>",
+  "title": "Studio Wilhelmina Druckerstraat in Apeldoorn",
+  "url": "https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1534119393-studio-wilhelmina-druckerstraat-in-apeldoorn"
  },
  "help_sent": true,
  "notice_id": null,
- "offset": 899399698,
+ "offset": 899399700,
  "queue": [
-  {
-   "key": "Marktplaats:a1534119393",
-   "star": true,
-   "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Студия: Studio Wilhelmina Druckerstraat in Apeldoorn</b>\n💶 €576/мес\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1534119393-studio-wilhelmina-druckerstraat-in-apeldoorn\">Marktplaats</a>",
-   "title": "Studio Wilhelmina Druckerstraat in Apeldoorn",
-   "url": "https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1534119393-studio-wilhelmina-druckerstraat-in-apeldoorn"
-  },
   {
    "key": "Marktplaats:a1533986699",
    "star": true,
@@ -257,7 +250,13 @@
    "url": "https://www.kamer.nl/huren/appartement-apeldoorn/asselsestraat/606743/"
   }
  ],
- "saved": {},
+ "saved": {
+  "55": {
+   "key": "Marktplaats:a1533910463",
+   "title": "Studio Hoofdstraat in Apeldoorn",
+   "url": "https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1533910463-studio-hoofdstraat-in-apeldoorn"
+  }
+ },
  "seen": {
   "Kamer.nl:516628": "2026-11-15",
   "Kamer.nl:606743": "2026-11-15",
