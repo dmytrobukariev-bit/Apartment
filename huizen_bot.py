@@ -284,6 +284,37 @@ def nl_date(text: str) -> str | None:
     return None
 
 
+# ---------------------------------------------------------------- спам
+# Платные «сервисы поиска жилья» выкладывают десятки однотипных объявлений
+# («Studio gevonden in of bij Apeldoorn») со ссылкой на свою подписку. Это не квартиры.
+SPAM_TITLE = re.compile(r"gevonden in of bij|woonruimte gevonden|nu beschikbaar via", re.I)
+SPAM_SELLER = re.compile(r"zoekservice|snel wonen|huurservice|woningzoek|rentola|huurzone|huurflits", re.I)
+
+
+# Не жильё: магазины, офисы, склады, гаражи, домики на турбазах
+NOT_HOME = re.compile(r"winkel|bedrijfs|kantoor|praktijk|opslag|garage|parkeer|chalet|"
+                      r"stacaravan|recreatie|vakantie", re.I)
+
+
+def is_spam(title: str, seller: str = "") -> bool:
+    return bool(SPAM_TITLE.search(title) or NOT_HOME.search(title)
+                or (seller and SPAM_SELLER.search(seller)))
+
+
+def purge_spam(st: dict) -> None:
+    """Убирает уже попавший в очередь спам (и с экрана, если он сейчас показан)."""
+    before = len(st["queue"])
+    st["queue"] = [q for q in st["queue"] if not is_spam(q["title"])]
+    if before != len(st["queue"]):
+        print(f"Убрано рекламы из очереди: {before - len(st['queue'])}")
+    cur = st.get("current")
+    if cur and is_spam(cur["title"]):
+        delete(cur["message_id"])
+        st["current"] = None
+    for sid in [s for s, v in st["saved"].items() if is_spam(v["title"])]:
+        st["saved"].pop(sid)
+
+
 # ---------------------------------------------------------------- Marktplaats
 def marktplaats() -> list[Listing]:
     out, ids = [], set()
@@ -311,6 +342,9 @@ def marktplaats() -> list[Listing]:
             if not re.search(r"/(huizen-te-huur|kamers-te-huur|appartementen-te-huur)/", vip):
                 continue
             if "te koop" in low or "gevraagd" in low or (price and price > 5000):
+                continue
+            seller = ((x.get("sellerInformation") or {}).get("sellerName") or "").lower()
+            if is_spam(title, seller):
                 continue
             attrs = {a.get("key"): str(a.get("value", "")) for a in x.get("attributes", [])}
             size = re.search(r"(\d+)\s*m²", title) or re.search(r"^(\d+)$", attrs.get("livingArea", ""))
@@ -1157,6 +1191,7 @@ RUN_FOR = 5 * 3600 + 40 * 60  # GitHub даёт до 6 часов на запу�
 
 def serve() -> int:
     st = load_state()
+    purge_spam(st)
     dedupe_queue(st)
     if not st.get("help_sent"):
         st["help_sent"] = True
