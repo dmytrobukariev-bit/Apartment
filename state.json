@@ -1,9 +1,7 @@
 {
  "_started": null,
  "auto_delete": [],
- "current": null,
  "help_sent": true,
- "notice_id": 140,
  "offset": 899399761,
  "queue": [],
  "saved": {
@@ -141,6 +139,7 @@
   "Nederwoon:38932": "2026-11-15",
   "Nederwoon:38954": "2026-11-15"
  },
+ "shown": {},
  "shown_fps": [
   {
    "kind": "Студия",
