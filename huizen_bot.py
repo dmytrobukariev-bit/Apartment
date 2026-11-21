@@ -307,10 +307,9 @@ def purge_spam(st: dict) -> None:
     st["queue"] = [q for q in st["queue"] if not is_spam(q["title"])]
     if before != len(st["queue"]):
         print(f"Убрано рекламы из очереди: {before - len(st['queue'])}")
-    cur = st.get("current")
-    if cur and is_spam(cur["title"]):
-        delete(cur["message_id"])
-        st["current"] = None
+    for mid in [m for m, v in st["shown"].items() if is_spam(v["title"])]:
+        delete(int(mid))
+        st["shown"].pop(mid)
     for sid in [s for s, v in st["saved"].items() if is_spam(v["title"])]:
         st["saved"].pop(sid)
 
@@ -590,10 +589,14 @@ def load_state() -> dict:
         st = {"_started": old.pop("_started", None), "seen": {}}
     st.setdefault("seen", {})
     st.setdefault("queue", [])     # объявления, которые ещё не показаны
-    st.setdefault("current", None)  # {"message_id", "key", "text"} — то, что сейчас на экране
+    st.setdefault("shown", {})      # message_id -> объявление, на которое ещё не нажали 👍/👎
     st.setdefault("saved", {})      # message_id -> {"key", "title", "url"}
     st.setdefault("offset", 0)      # для getUpdates
-    st.setdefault("notice_id", None)
+    cur = st.pop("current", None)   # старый формат: одно объявление на экране
+    if cur:
+        st["shown"][str(cur["message_id"])] = cur
+        schedule_delete(st, cur["message_id"], UNANSWERED_DELETE_AFTER)
+    st.pop("notice_id", None)  # уведомление «очередь пуста» больше не используется
     return st
 
 
@@ -638,8 +641,7 @@ def same_home(a: dict, b: dict) -> bool:
 def is_duplicate(st: dict, item: dict) -> bool:
     fp = fingerprint(item)
     others = st.setdefault("shown_fps", []) + [fingerprint(q) for q in st["queue"]]
-    if st["current"]:
-        others.append(fingerprint(st["current"]))
+    others += [fingerprint(v) for v in st["shown"].values()]
     return any(same_home(fp, o) for o in others)
 
 
@@ -851,37 +853,29 @@ def nice_dates(text: str) -> str:
 
 
 # ---------------------------------------------------------------- queue
+UNANSWERED_DELETE_AFTER = 40 * 3600  # Telegram даёт боту удалять сообщения только в первые 48 ч
+
+
 def show_next(st: dict) -> None:
-    """Показывает следующее объявление из очереди, если сейчас ничего не показано."""
-    if st["current"]:
-        return
-    if not st["queue"]:
-        return
-    if st.get("notice_id"):
-        delete(st["notice_id"])
-        st["notice_id"] = None
-    item = st["queue"].pop(0)
-    st.setdefault("shown_fps", []).append(fingerprint(item))
-    st["shown_fps"] = st["shown_fps"][-1000:]
-    left = len(st["queue"])
-    full = nice_dates(item["text"]) + description_block(item["url"])
-    text = full + (f"\n\n📬 В очереди ещё: {left}" if left else "\n\n📬 Это последнее в очереди")
-    mid = send(text, LIKE_BUTTONS)
-    st["current"] = {"message_id": mid, "key": item["key"], "text": full,
-                     "title": item["title"], "url": item["url"]}
+    """Отправляет всё из очереди сразу, не дожидаясь нажатий."""
+    while st["queue"]:
+        item = st["queue"].pop(0)
+        st.setdefault("shown_fps", []).append(fingerprint(item))
+        st["shown_fps"] = st["shown_fps"][-1000:]
+        full = nice_dates(item["text"]) + description_block(item["url"])
+        mid = send(full + "\n\n<i>Без нажатия исчезнет через 40 ч</i>", LIKE_BUTTONS)
+        st["shown"][str(mid)] = {"message_id": mid, "key": item["key"], "text": full,
+                                 "title": item["title"], "url": item["url"]}
+        schedule_delete(st, mid, UNANSWERED_DELETE_AFTER)
+        time.sleep(1)
 
 
-def queue_empty_notice(st: dict) -> None:
-    if not st["current"] and not st["queue"] and not st.get("notice_id"):
-        st["notice_id"] = send("✅ Очередь пуста. Пришлю, как только появится что-то новое.")
-
-
-HELP = ("🤖 Я ищу жильё в Апельдорне и присылаю объявления по одному.\n\n"
-        "👍 Оставить: сохраню (сообщение само исчезнет через минуту, чтобы не засорять чат)\n"
-        "👎 Не то: удалю его и покажу следующее\n\n"
+HELP = ("🤖 Я ищу жильё в Апельдорне и присылаю новые объявления сразу.\n\n"
+        "👍 Оставить: сохраню (сообщение исчезнет через минуту, вариант останется в /saved)\n"
+        "👎 Не то: удалю\n"
+        "Без нажатия объявление само исчезнет через 40 часов.\n\n"
         "Команды:\n/saved: сохранённые (нажми на вариант, чтобы открыть подробно)\n"
-        "/queue: сколько осталось в очереди\n"
-        "/next: показать следующее, если застряло")
+        "/queue: сколько объявлений без ответа")
 SAVED_DELETE_AFTER = 60       # «💚 Сохранено» исчезает через минуту
 DETAILS_DELETE_AFTER = 10 * 60  # открытые из /saved подробности и сам список: через 10 минут
 
@@ -899,6 +893,7 @@ def run_auto_delete(st: dict) -> bool:
     for mid, _ in due:
         if mid == st.get("saved_list_id"):
             st["saved_list_id"] = None
+        st["shown"].pop(str(mid), None)
         try:
             tg("deleteMessage", chat_id=os.environ["TELEGRAM_CHAT_ID"], message_id=mid)
         except TelegramError:
@@ -1023,10 +1018,11 @@ def on_button(st: dict, action: str, mid: int, cq_id: str) -> None:
     if action.startswith("y:"):
         action = action[2:]
 
-    cur = st["current"]
-    is_current = cur and cur["message_id"] == mid
+    cur = st["shown"].get(str(mid))
+    is_current = cur is not None
     answer = ""
     if action == "like":
+        cancel_delete(st, mid)  # снимаем 40-часовое удаление, ставим минутное ниже
         info = ({"key": cur["key"], "title": cur["title"], "url": cur["url"],
                  "summary": short_summary(cur["text"]), "text": cur["text"]} if is_current
                 else {"key": "", "title": "объявление", "url": ""})
@@ -1072,14 +1068,11 @@ def on_button(st: dict, action: str, mid: int, cq_id: str) -> None:
         cancel_delete(st, mid)
         delete(mid)
     if is_current and action in ("like", "no"):
-        st["current"] = None
+        st["shown"].pop(str(mid), None)
     try:
         tg("answerCallbackQuery", callback_query_id=cq_id, text=answer)
     except TelegramError:
         pass
-    if action in ("like", "no"):
-        show_next(st)
-        queue_empty_notice(st)
 
 
 def short_summary(text: str) -> str:
@@ -1117,12 +1110,9 @@ def on_command(st: dict, cmd: str) -> None:
             st["saved_list_id"] = lid
             schedule_delete(st, lid, DETAILS_DELETE_AFTER)
     elif cmd == "/queue":
-        stars = sum(q["star"] for q in st["queue"])
-        send(f"📬 В очереди: {len(st['queue'])} (из них ⭐ {stars})")
+        send(f"📬 Без ответа в чате: {len(st['shown'])}. Новые объявления приходят сразу.")
     elif cmd == "/next":
-        st["current"] = None
         show_next(st)
-        queue_empty_notice(st)
     else:
         send(HELP)
 
