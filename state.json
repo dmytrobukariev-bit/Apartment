@@ -1,39 +1,11 @@
 {
  "_started": null,
  "auto_delete": [],
- "current": {
-  "key": "Kamer.nl:687555",
-  "message_id": 128,
-  "text": "ℹ️ <i>Дополнительный вариант (вне основных критериев)</i>\n🏠 <b>Квартира: Appartement Nieuwstraat, Apeldoorn</b>\n💶 €970/мес\n📅 свободно сейчас ✅\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.kamer.nl/huren/appartement-apeldoorn/nieuwstraat/687555/\">Kamer.nl</a>\n\n📝 <b>Описание</b> (перевод):\n<blockquote expandable>Сдается квартира на улице Nieuwstraat в Апелдорне, жилой площадью 52 м2, стоимость аренды 970 евро в месяц. Квартира 2022 года расположена на третьем этаже и состоит из 2 комнат, в том числе 1 спальни с собственной ванной комнатой,…\nПодробнее\nСдается квартира на улице Nieuwstraat в Апелдорне, жилой площадью 52 м2, стоимость аренды 970 евро в месяц. Квартира 2022 года постройки расположена на третьем этаже и имеет 2 комнаты, в том числе 1 спальню с собственной ванной комнатой, открытую кухню, французский балкон и кладовую. Большие окна обеспечивают много света; В подвале также есть кладовая. Расходы на обслуживание, включая аванс на обивку и отопление, составляют 145 евро в месяц, что в сумме составляет 1095 евро в месяц.</blockquote>",
-  "title": "Appartement Nieuwstraat, Apeldoorn",
-  "url": "https://www.kamer.nl/huren/appartement-apeldoorn/nieuwstraat/687555/"
- },
+ "current": null,
  "help_sent": true,
- "notice_id": null,
- "offset": 899399757,
- "queue": [
-  {
-   "key": "Marktplaats:a1534350163",
-   "star": true,
-   "text": "⭐ <b>ПОДХОДИТ ПОД ТВОИ КРИТЕРИИ</b>\n🏠 <b>Квартира: Appartement te huur in Apeldoorn - 26 m² - 1 kamer</b>\n💶 €725/мес · 📐 26 м² · 🚪 комнат: 1\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1534350163-appartement-te-huur-in-apeldoorn-26-m2-1-kamer\">Marktplaats</a>",
-   "title": "Appartement te huur in Apeldoorn - 26 m² - 1 kamer",
-   "url": "https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1534350163-appartement-te-huur-in-apeldoorn-26-m2-1-kamer"
-  },
-  {
-   "key": "Marktplaats:a1533883708",
-   "star": false,
-   "text": "ℹ️ <i>Дополнительный вариант (вне основных критериев)</i>\n🏠 <b>Комната: Kamer te huur in Apeldoorn - 20 m² - 1 kamer</b>\n💶 €560/мес · 📐 20 м²\n❓ регистрация не указана, уточни у арендодателя\n🔗 <a href=\"https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1533883708-kamer-te-huur-in-apeldoorn-20-m2-1-kamer\">Marktplaats</a>",
-   "title": "Kamer te huur in Apeldoorn - 20 m² - 1 kamer",
-   "url": "https://www.marktplaats.nl/v/huizen-en-kamers/kamers-te-huur/a1533883708-kamer-te-huur-in-apeldoorn-20-m2-1-kamer"
-  },
-  {
-   "key": "Kamernet:2419890",
-   "star": false,
-   "text": "ℹ️ <i>Дополнительный вариант (вне основных критериев)</i>\n🏠 <b>Комната: Room Mariastraat, Apeldoorn</b>\n💶 €413/мес · 📐 20 м²\n📅 свободно сейчас\n❓ регистрация не указана, уточни у арендодателя\nкоммуналка включена\n⚠️ подозрительно дёшево, будь осторожен с мошенниками\n🔗 <a href=\"https://kamernet.nl/en/for-rent/room-apeldoorn/mariastraat/room-2419890\">Kamernet</a>",
-   "title": "Room Mariastraat, Apeldoorn",
-   "url": "https://kamernet.nl/en/for-rent/room-apeldoorn/mariastraat/room-2419890"
-  }
- ],
+ "notice_id": 140,
+ "offset": 899399761,
+ "queue": [],
  "saved": {
   "59": {
    "key": "Marktplaats:a1534119393",
@@ -331,6 +303,24 @@
    "price": 970,
    "size": 0,
    "street": "nieuwstraat"
+  },
+  {
+   "kind": "Квартира",
+   "price": 725,
+   "size": 26,
+   "street": ""
+  },
+  {
+   "kind": "Комната",
+   "price": 560,
+   "size": 20,
+   "street": ""
+  },
+  {
+   "kind": "Комната",
+   "price": 413,
+   "size": 20,
+   "street": "mariastraat"
   }
  ]
 }
