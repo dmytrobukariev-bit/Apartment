@@ -1,8 +1,17 @@
 {
  "_started": null,
- "auto_delete": [],
+ "auto_delete": [
+  [
+   145,
+   1795360097.3195448
+  ],
+  [
+   146,
+   1795360100.2731874
+  ]
+ ],
  "help_sent": true,
- "offset": 899399763,
+ "offset": 899399765,
  "queue": [],
  "saved": {
   "59": {
@@ -48,7 +57,7 @@
    "url": "https://www.marktplaats.nl/v/huizen-en-kamers/huizen-te-huur/a1533602920-te-huur-appartement-rustenburgstraat-in-apeldoorn"
   }
  },
- "saved_list_id": null,
+ "saved_list_id": 145,
  "seen": {
   "Kamer.nl:516628": "2026-11-15",
   "Kamer.nl:606743": "2026-11-15",
